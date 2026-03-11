@@ -59,7 +59,7 @@ export default function ContactPage() {
 
       if (res.ok) {
         setFormState("success");
-        setForm({ name: "", email: "", subject: "", message: "" });
+        setForm({ name: "", email: "", phone: "", subject: "", message: "" });
       } else {
         const data = await res.json();
         setErrorMsg(data.error || "Something went wrong. Please try again.");
