@@ -416,7 +416,7 @@ export default function Home() {
             { icon: "🚚", title: "Free UK Delivery", desc: `On orders over ${SITE.delivery.freeThresholdDisplay}` },
             { icon: "✅", title: "100% Authentic", desc: "Genuine Indian products" },
             { icon: "🔒", title: "Secure Payments", desc: "Powered by Stripe" },
-            { icon: "💬", title: "UK Based Support", desc: "contact@truemart.co.uk" },
+            { icon: "💬", title: "UK Based Support", desc: SITE.contact.email },
           ].map((badge) => (
             <div key={badge.title} className="flex flex-col items-center">
               <span className="text-3xl mb-2">{badge.icon}</span>
