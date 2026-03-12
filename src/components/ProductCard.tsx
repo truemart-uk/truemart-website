@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { cloudinaryUrl } from "@/lib/cloudinary";
+import { useCart } from "@/context/CartContext";
 
 // ── TYPES ─────────────────────────────────────────────────────────────────────
 
@@ -41,7 +42,6 @@ type ProductCardProps = {
   product: ProductCardData;
   wishlisted?: boolean;
   onWishlist?: (id: string) => void;
-  onAddToCart?: (id: string, variantId?: string) => void;
 };
 
 // ── BADGE CONFIG ──────────────────────────────────────────────────────────────
@@ -161,7 +161,6 @@ export default function ProductCard({
   product,
   wishlisted = false,
   onWishlist,
-  onAddToCart,
 }: ProductCardProps) {
   const [imgError, setImgError] = useState(false);
   const [hovered, setHovered]   = useState(false);
@@ -174,7 +173,7 @@ export default function ProductCard({
     async function load() {
       const { data } = await supabase
         .from("product_variants")
-        .select("id, type, value, label, color_hex, price, compare_at_price, stock_qty, is_default, display_order")
+        .select("id, type, value, label, color_hex, price, compare_at_price, stock_qty, images, is_default, display_order")
         .eq("product_id", product.id)
         .eq("is_active", true)
         .order("display_order");
@@ -199,13 +198,40 @@ export default function ProductCard({
   }, [product.id]);
 
   // Active values — first variant type drives price/stock
+  const { addItem, items, updateQuantity } = useCart();
   const primaryVariant = Object.values(selectedVariants)[0] ?? null;
+
+  // Reset image error when variant changes
+  useEffect(() => { setImgError(false); }, [primaryVariant?.id]);
+
+  // Current qty in cart for this product+variant
+  const cartItem = items.find(i =>
+    i.productId === product.id &&
+    (i.variantId ?? "default") === (primaryVariant?.id ?? "default")
+  );
+  const cartQty = cartItem?.quantity ?? 0;
+
+  // Reset image error when variant changes
   const activePrice    = primaryVariant?.price        ?? product.price;
   const activeCompare  = primaryVariant?.compare_at_price ?? product.compare_at_price;
   const activeStock    = primaryVariant?.stock_qty    ?? product.stock_qty;
 
-  const rawImage     = !imgError && product.images?.[0] ? product.images[0] : null;
-  const imageUrl     = rawImage ? cloudinaryUrl(rawImage, "card") : null;
+  const handleAddToCart = () => {
+    addItem({
+      productId: product.id,
+      variantId: primaryVariant?.id,
+      name: product.name,
+      variantLabel: primaryVariant?.value,
+      price: activePrice,
+      image: !imgError ? (primaryVariant?.images?.[0] || product.images?.[0]) ?? undefined : undefined,
+      slug: product.slug,
+      deliveryIncluded: product.delivery_included ?? false,
+    });
+  };
+
+  // Variant image takes priority, falls back to product image
+  const activeSrc = !imgError ? (primaryVariant?.images?.[0] || product.images?.[0]) ?? null : null;
+  const imageUrl = activeSrc ? cloudinaryUrl(activeSrc, "card") : null;
   const discount     = activeCompare && activeCompare > activePrice
     ? Math.round(((activeCompare - activePrice) / activeCompare) * 100)
     : null;
@@ -358,31 +384,38 @@ export default function ProductCard({
           )}
         </div>
 
-        {/* Add to Cart */}
-        <button
-          disabled={isOutOfStock}
-          onClick={() => onAddToCart?.(product.id, primaryVariant?.id)}
-          style={{
-            width: "100%", marginTop: "4px", padding: "10px 0", borderRadius: "12px", border: "none",
-            cursor: isOutOfStock ? "not-allowed" : "pointer",
-            background: isOutOfStock ? "#F3F4F6" : "#F97316",
-            color: isOutOfStock ? "#9CA3AF" : "#ffffff",
-            fontSize: "14px", fontWeight: 700,
-            display: "flex", alignItems: "center", justifyContent: "center", gap: "7px",
-            transition: "background 0.15s ease",
-          }}
-          onMouseEnter={(e) => { if (!isOutOfStock) (e.currentTarget as HTMLButtonElement).style.background = "#EA6D0E"; }}
-          onMouseLeave={(e) => { if (!isOutOfStock) (e.currentTarget as HTMLButtonElement).style.background = "#F97316"; }}
-        >
-          {isOutOfStock ? "Out of Stock" : (
-            <>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-              </svg>
-              Add to Cart
-            </>
-          )}
-        </button>
+        {/* Add to Cart / Qty Controls */}
+        {isOutOfStock ? (
+          <button disabled style={{ width: "100%", marginTop: "4px", padding: "10px 0", borderRadius: "12px", border: "none", cursor: "not-allowed", background: "#F3F4F6", color: "#9CA3AF", fontSize: "14px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            Out of Stock
+          </button>
+        ) : cartQty === 0 ? (
+          <button
+            onClick={handleAddToCart}
+            style={{ width: "100%", marginTop: "4px", padding: "10px 0", borderRadius: "12px", border: "none", cursor: "pointer", background: "#F97316", color: "#fff", fontSize: "14px", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "7px", transition: "background 0.15s ease" }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#EA6D0E"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "#F97316"; }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            Add to Cart
+          </button>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", border: "2px solid #F97316", borderRadius: "12px", overflow: "hidden", height: "42px", marginTop: "4px" }}>
+            <button
+              onClick={() => updateQuantity(product.id, primaryVariant?.id, cartQty - 1)}
+              style={{ flex: 1, height: "100%", border: "none", background: "none", fontSize: "20px", fontWeight: 700, color: "#F97316", cursor: "pointer" }}
+              aria-label="Remove one"
+            >−</button>
+            <span style={{ width: "36px", textAlign: "center", fontWeight: 700, fontSize: "15px", color: "#111" }}>{cartQty}</span>
+            <button
+              onClick={() => updateQuantity(product.id, primaryVariant?.id, cartQty + 1)}
+              style={{ flex: 1, height: "100%", border: "none", background: "#F97316", fontSize: "20px", fontWeight: 700, color: "#fff", cursor: "pointer" }}
+              aria-label="Add one more"
+            >+</button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -4,9 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SITE } from "@/lib/site";
+import { useCart } from "@/context/CartContext";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { totalItems, openCart } = useCart();
   return (
     <>
       {/* Announcement Bar */}
@@ -59,12 +61,12 @@ export default function Navbar() {
               </button>
 
               {/* Cart */}
-              <button aria-label="View cart" className="relative flex items-center gap-2 bg-brand-orange text-white pl-3 pr-4 py-2 rounded-full text-sm font-semibold hover:bg-orange-600 transition-colors ml-1">
+              <button onClick={openCart} aria-label="View cart" className="relative flex items-center gap-2 bg-brand-orange text-white pl-3 pr-4 py-2 rounded-full text-sm font-semibold hover:bg-orange-600 transition-colors ml-1">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                 </svg>
                 <span>Cart</span>
-                <span className="bg-white text-brand-orange text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center">0</span>
+                <span className="bg-white text-brand-orange text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center">{totalItems}</span>
               </button>
             </div>
           </div>
@@ -87,7 +89,7 @@ export default function Navbar() {
                 key={item.label}
                 href={item.href}
                 className={`flex items-center gap-1 px-2 h-full text-sm font-semibold transition-colors whitespace-nowrap border-b-2 
-                  ${pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
+                  ${pathname === item.href
                     ? "text-brand-orange border-brand-orange"
                     : "text-gray-600 border-transparent hover:text-brand-orange hover:border-orange-200"
                   }`}

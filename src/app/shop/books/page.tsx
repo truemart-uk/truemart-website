@@ -104,7 +104,6 @@ export default function BooksPage() {
                 product={product}
                 wishlisted={wishlist.has(product.id)}
                 onWishlist={(id) => toggleWishlist(id)}
-                onAddToCart={(id) => console.log("Add to cart:", id)}
               />
             ))}
           </div>

@@ -196,11 +196,13 @@ export default function Home() {
 
               {/* Main image */}
               <div className="relative z-10 w-64 h-64 md:w-72 md:h-72 rounded-3xl overflow-hidden shadow-2xl shadow-orange-200 border-4 border-white">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src="https://www.truemart.co.uk/web/image/2504-6650acb9/Image%201.webp"
                   alt="Raksha Bandhan collection at TrueMart"
-                  className="w-full h-full object-cover"
+                  fill
+                  priority
+                  className="object-cover"
+                  sizes="(max-width: 768px) 288px, 320px"
                 />
               </div>
 
