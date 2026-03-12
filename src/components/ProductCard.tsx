@@ -19,6 +19,7 @@ export type ProductVariant = {
   stock_qty?: number | null;
   is_default: boolean;
   display_order: number;
+  images?: string[] | null; 
 };
 
 export type ProductCardData = {
