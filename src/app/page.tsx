@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { SITE } from "@/lib/site";
+import PageHero from "@/components/PageHero";
 
 const categories = [
   {
@@ -109,16 +110,7 @@ export default function Home() {
     <main className="min-h-screen bg-background">
 
             {/* Hero Section */}
-      <section className="relative bg-orange-50 overflow-hidden min-h-[560px] flex items-center">
-
-        {/* Background decorative circles */}
-        <div className="absolute -top-20 -right-20 w-96 h-96 bg-brand-orange opacity-10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-brand-red opacity-10 rounded-full blur-3xl" />
-
-        {/* Subtle pattern overlay */}
-        <div className="absolute inset-0 opacity-[0.025]" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='52' height='26' viewBox='0 0 52 26' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23FB923C' fill-opacity='1'%3E%3Cpath d='M10 10c0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6h2c0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4v2c-3.314 0-6-2.686-6-6 0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6zm25.464-1.95l8.486 8.486-1.414 1.414-8.486-8.486 1.414-1.414z' /%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-        }} />
+      <PageHero className="min-h-[560px] flex items-center">
 
         <div className="relative max-w-6xl mx-auto px-6 py-16 w-full">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
@@ -192,7 +184,7 @@ export default function Home() {
             </div>
 
             {/* Right — Image */}
-            <div className="relative order-1 md:order-2 flex justify-center">
+            <div className="relative order-1 md:order-2 flex justify-center overflow-hidden">
 
               {/* Decorative ring */}
               <div className="absolute inset-0 flex items-center justify-center">
@@ -203,7 +195,7 @@ export default function Home() {
               </div>
 
               {/* Main image */}
-              <div className="relative z-10 w-72 h-72 md:w-80 md:h-80 rounded-3xl overflow-hidden shadow-2xl shadow-orange-200 border-4 border-white">
+              <div className="relative z-10 w-64 h-64 md:w-72 md:h-72 rounded-3xl overflow-hidden shadow-2xl shadow-orange-200 border-4 border-white">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="https://www.truemart.co.uk/web/image/2504-6650acb9/Image%201.webp"
@@ -227,7 +219,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* Categories */}
       <section className="max-w-7xl mx-auto px-6 py-16">

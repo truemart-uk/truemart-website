@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { SITE } from "@/lib/site";
+import PageHero from "@/components/PageHero";
 
 type FormState = "idle" | "loading" | "success" | "error";
 
@@ -75,7 +76,7 @@ export default function ContactPage() {
     <main className="min-h-screen bg-background">
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-orange-50 to-orange-100 border-b border-orange-100">
+      <PageHero>
         <div className="max-w-5xl mx-auto px-6 py-16 text-center">
           <div className="inline-flex items-center gap-2 bg-white border border-orange-200 rounded-full px-4 py-1.5 mb-6 shadow-sm">
             <span className="text-sm">💬</span>
@@ -88,7 +89,7 @@ export default function ContactPage() {
             Have a question about an order, product or anything else? Send us a message and we'll get back to you within 24 hours.
           </p>
         </div>
-      </section>
+      </PageHero>
 
       <div className="max-w-5xl mx-auto px-6 py-14">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">

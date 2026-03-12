@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "About Us | TrueMart",
@@ -66,8 +65,12 @@ export default function AboutPage() {
     <main className="min-h-screen bg-background">
 
       {/* Hero */}
-      <PageHero className="min-h-0">
-
+      <section className="relative bg-gradient-to-br from-orange-50 to-orange-100 overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.04]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23FB923C'%3E%3Cpath d='M30 0 L35 20 L55 20 L40 32 L45 52 L30 42 L15 52 L20 32 L5 20 L25 20 Z'/%3E%3C/g%3E%3C/svg%3E")`
+        }} />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-orange opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand-red opacity-10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
 
         <div className="relative max-w-6xl mx-auto px-6 py-20 text-center">
           <div className="inline-flex items-center gap-2 bg-white border border-orange-200 rounded-full px-4 py-1.5 mb-6 shadow-sm">
@@ -93,7 +96,7 @@ export default function AboutPage() {
             ))}
           </div>
         </div>
-      </PageHero>
+      </section>
 
       {/* Mission Statement */}
       <section className="max-w-6xl mx-auto px-6 py-20">

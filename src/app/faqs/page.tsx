@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { SITE } from "@/lib/site";
+import PageHero from "@/components/PageHero";
 
 type FAQ = {
   id: number;
@@ -128,7 +129,7 @@ export default function FAQPage() {
     <main className="min-h-screen bg-background">
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-orange-50 to-orange-100 border-b border-orange-100">
+      <PageHero>
         <div className="max-w-3xl mx-auto px-6 py-16 text-center">
           <div className="inline-flex items-center gap-2 bg-white border border-orange-200 rounded-full px-4 py-1.5 mb-6 shadow-sm">
             <span className="text-sm">💬</span>
@@ -160,7 +161,7 @@ export default function FAQPage() {
             )}
           </div>
         </div>
-      </section>
+      </PageHero>
 
       <div className="max-w-3xl mx-auto px-6 py-12">
 

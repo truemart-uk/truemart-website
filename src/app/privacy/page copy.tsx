@@ -7,7 +7,6 @@ export const metadata: Metadata = {
 
 import Link from "next/link";
 import { SITE } from "@/lib/site";
-import PageHero from "@/components/PageHero";
 
 const sections = [
   { id: "who-we-are", title: "1. Who We Are" },
@@ -30,7 +29,7 @@ export default function PrivacyPage() {
     <main className="min-h-screen bg-background">
 
       {/* Hero */}
-      <PageHero>
+      <section className="bg-gradient-to-br from-orange-50 to-orange-100 border-b border-orange-100">
         <div className="max-w-4xl mx-auto px-6 py-16 text-center">
           <div className="inline-flex items-center gap-2 bg-white border border-orange-200 rounded-full px-4 py-1.5 mb-6 shadow-sm">
             <span className="text-sm">🔒</span>
@@ -47,7 +46,7 @@ export default function PrivacyPage() {
             Last updated: 13 July 2025 &nbsp;·&nbsp; Compliant with UK GDPR & Data Protection Act 2018
           </div>
         </div>
-      </PageHero>
+      </section>
 
       <div className="max-w-4xl mx-auto px-6 py-14">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
