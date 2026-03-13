@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 
-export default function NewAddressPage() {
+function NewAddressForm() {
   const router       = useRouter();
   const params       = useSearchParams();
   const redirect     = params.get("redirect") ?? "/account/addresses";
@@ -136,7 +136,7 @@ export default function NewAddressPage() {
                 type="text" required
                 value={form.full_name}
                 onChange={e => update("full_name", e.target.value)}
-                placeholder="Full Name"
+                placeholder="Manish Gangwar"
                 className={inputClass}
               />
             </div>
@@ -241,5 +241,13 @@ export default function NewAddressPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function NewAddressPage() {
+  return (
+    <Suspense>
+      <NewAddressForm />
+    </Suspense>
   );
 }
