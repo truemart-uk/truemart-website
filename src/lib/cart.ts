@@ -1,7 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { CartItem } from "@/context/CartContext";
 
-// ── DB row → CartItem ─────────────────────────────────────────────────────────
 export function dbRowToCartItem(row: Record<string, unknown>): CartItem {
   return {
     productId:        row.product_id as string,
@@ -16,7 +15,6 @@ export function dbRowToCartItem(row: Record<string, unknown>): CartItem {
   };
 }
 
-// ── CartItem → DB row ─────────────────────────────────────────────────────────
 export function cartItemToDbRow(item: CartItem, userId: string) {
   return {
     user_id:                    userId,
@@ -32,7 +30,6 @@ export function cartItemToDbRow(item: CartItem, userId: string) {
   };
 }
 
-// ── Load cart from DB ─────────────────────────────────────────────────────────
 export async function loadCartFromDB(
   supabase: SupabaseClient,
   userId: string
@@ -43,12 +40,10 @@ export async function loadCartFromDB(
     .eq("user_id", userId)
     .eq("saved_for_later", false)
     .order("created_at", { ascending: true });
-
   if (error || !data) return [];
   return data.map(dbRowToCartItem);
 }
 
-// ── Upsert item (add or increment) ───────────────────────────────────────────
 export async function upsertCartItemInDB(
   supabase: SupabaseClient,
   userId: string,
@@ -65,7 +60,7 @@ export async function upsertCartItemInDB(
   if (existing) {
     await supabase
       .from("cart_items")
-      .update(updatedRow)
+      .update({ ...cartItemToDbRow(item, userId), quantity: existing.quantity + 1 })
       .eq("id", existing.id);
   } else {
     await supabase
@@ -74,7 +69,6 @@ export async function upsertCartItemInDB(
   }
 }
 
-// ── Update quantity ───────────────────────────────────────────────────────────
 export async function updateCartQuantityInDB(
   supabase: SupabaseClient,
   userId: string,
@@ -94,7 +88,6 @@ export async function updateCartQuantityInDB(
     .is("variant_id", variantId ?? null);
 }
 
-// ── Remove item ───────────────────────────────────────────────────────────────
 export async function removeCartItemFromDB(
   supabase: SupabaseClient,
   userId: string,
@@ -109,7 +102,6 @@ export async function removeCartItemFromDB(
     .is("variant_id", variantId ?? null);
 }
 
-// ── Clear entire cart ─────────────────────────────────────────────────────────
 export async function clearCartInDB(
   supabase: SupabaseClient,
   userId: string
@@ -120,8 +112,6 @@ export async function clearCartInDB(
     .eq("user_id", userId);
 }
 
-// ── Merge guest localStorage cart into DB ─────────────────────────────────────
-// quantities summed for matching items (guest=2, DB=1 → merged=3)
 export async function mergeGuestCartIntoDB(
   supabase: SupabaseClient,
   userId: string,
