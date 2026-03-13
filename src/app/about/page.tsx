@@ -32,10 +32,10 @@ const values = [
 ];
 
 const stats = [
-  { value: "500+", label: "Happy Customers" },
-  { value: "5★", label: "Average Rating" },
-  { value: "50+", label: "Authentic Products" },
-  { value: "UK", label: "Wide Delivery" },
+  { value: "100% Authentic", label: "Hand-Selected Quality" },
+  { value: "UK Registered", label: "Shop with Confidence" },
+  { value: "Highly Rated", label: "Loved by Our Community" },
+  { value: "UK Wide", label: "Fast & Reliable Shipping" },
 ];
 
 const journey = [
@@ -137,7 +137,7 @@ export default function AboutPage() {
                 <Image src="/truemart_logo.png" alt="TrueMart" width={50} height={50} className="object-contain" />
                 <div>
                   <p className="font-extrabold text-gray-900">TrueMart</p>
-                  <p className="text-xs text-brand-orange font-medium">UK Based • Est. 2024</p>
+                  <p className="text-xs text-brand-orange font-medium">UK Based • Est. 2025</p>
                 </div>
               </div>
               <blockquote className="text-gray-600 text-lg leading-relaxed italic border-l-4 border-brand-orange pl-4 mb-6">

@@ -31,7 +31,7 @@ const faqs = [
     id: 1,
     category: "orders",
     question: "Do you ship internationally?",
-    answer: "At the moment, we serve customers across the UK only. We are actively working on expanding our reach worldwide. Stay tuned — TrueMart will soon be bringing authentic Indian products to more homes around the globe!",
+    answer: "At the moment, we serve customers across the UK only. We are actively working on expanding our reach worldwide. Stay tuned — TrueMart will soon be bringing authentic products to more homes around the globe!",
   },
   {
     id: 2,

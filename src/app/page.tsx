@@ -197,7 +197,7 @@ export default function Home() {
               {/* Main image */}
               <div className="relative z-10 w-64 h-64 md:w-72 md:h-72 rounded-3xl overflow-hidden shadow-2xl shadow-orange-200 border-4 border-white">
                 <Image
-                  src="https://www.truemart.co.uk/web/image/2504-6650acb9/Image%201.webp"
+                  src=""
                   alt="Raksha Bandhan collection at TrueMart"
                   fill
                   priority
@@ -209,7 +209,7 @@ export default function Home() {
               {/* Floating badge — top right */}
               <div className="absolute top-4 right-4 z-20 bg-white rounded-2xl shadow-lg px-3 py-2 border border-orange-100">
                 <p className="text-xs font-bold text-gray-900">🎀 New Arrivals</p>
-                <p className="text-xs text-brand-orange font-semibold">Rakhi 2025</p>
+                <p className="text-xs text-brand-orange font-semibold">Rakhi 2026</p>
               </div>
 
               {/* Floating badge — bottom left */}
