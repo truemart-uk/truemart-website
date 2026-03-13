@@ -95,11 +95,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for login / logout
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        userIdRef.current = session.user.id;
-        const dbItems = await loadCartFromDB(supabase, session.user.id);
-        setItems(dbItems);
-      }
+      //if (event === "SIGNED_IN" && session?.user) {
+        //userIdRef.current = session.user.id;
+        //const dbItems = await loadCartFromDB(supabase, session.user.id);
+        //setItems(dbItems);
+      //}
       if (event === "SIGNED_OUT") {
         userIdRef.current = null;
         clearLocalCart();

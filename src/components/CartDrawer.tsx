@@ -182,7 +182,7 @@ export default function CartDrawer() {
             <Link
               href="/checkout"
               onClick={closeCart}
-              style={{ display: "block", background: "#FB923C", color: "#fff", textAlign: "center", padding: "14px", borderRadius: 12, fontWeight: 700, fontSize: 15, textDecoration: "none" }}
+              className="w-full bg-brand-orange hover:bg-orange-500 text-white font-bold py-3.5 rounded-xl text-sm transition text-center block"
             >
               Checkout · £{subtotal.toFixed(2)}
             </Link>
