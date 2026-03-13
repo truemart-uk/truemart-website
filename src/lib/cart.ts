@@ -65,7 +65,7 @@ export async function upsertCartItemInDB(
   if (existing) {
     await supabase
       .from("cart_items")
-      .update({ quantity: existing.quantity + 1, ...cartItemToDbRow(item, userId) })
+      .update(updatedRow)
       .eq("id", existing.id);
   } else {
     await supabase
