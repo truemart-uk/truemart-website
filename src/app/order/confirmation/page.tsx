@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -31,7 +31,7 @@ type Order = {
   }>;
 };
 
-export default function OrderConfirmationPage() {
+function OrderConfirmationContent() {
   const params  = useSearchParams();
   const pi      = params.get("pi");
   const [order, setOrder]     = useState<Order | null>(null);
@@ -189,5 +189,13 @@ export default function OrderConfirmationPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function OrderConfirmationPage() {
+  return (
+    <Suspense>
+      <OrderConfirmationContent />
+    </Suspense>
   );
 }
