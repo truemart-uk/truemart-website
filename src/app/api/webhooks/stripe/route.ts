@@ -129,6 +129,23 @@ async function handlePaymentSuccess(
 
   await supabase.from("order_items").insert(orderItems);
 
+  // ── Decrement stock atomically ─────────────────────────────────────────────
+  for (const item of cartItems) {
+    if (item.variant_id) {
+      // Variant-level stock
+      await supabase.rpc("decrement_variant_stock", {
+        p_variant_id: item.variant_id,
+        p_qty:        item.quantity,
+      });
+    } else {
+      // Product-level stock
+      await supabase.rpc("decrement_product_stock", {
+        p_product_id: item.product_id,
+        p_qty:        item.quantity,
+      });
+    }
+  }
+
   // Clear cart
   await supabase.from("cart_items").delete().eq("user_id", user_id);
 
