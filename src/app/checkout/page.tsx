@@ -139,7 +139,7 @@ function OrderSummary({
 
 // ── PAYMENT FORM ──────────────────────────────────────────────────────────────
 
-function PaymentForm({ onSuccess }: { onSuccess: (piId: string) => void }) {
+function PaymentForm() {
   const stripe   = useStripe();
   const elements = useElements();
   const [paying, setPaying] = useState(false);
@@ -151,19 +151,17 @@ function PaymentForm({ onSuccess }: { onSuccess: (piId: string) => void }) {
     setError("");
     setPaying(true);
 
-    const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
+    const { error: stripeError } = await stripe.confirmPayment({
       elements,
-      redirect: "if_required",
+      confirmParams: {
+        return_url: `${window.location.origin}/order/confirmation`,
+      },
     });
 
+    // Only reaches here if there's an error (redirect happens automatically on success)
     if (stripeError) {
       setError(stripeError.message ?? "Payment failed. Please try again.");
       setPaying(false);
-      return;
-    }
-
-    if (paymentIntent?.status === "succeeded") {
-      onSuccess(paymentIntent.id);
     }
   }
 
@@ -473,7 +471,7 @@ export default function CheckoutPage() {
                     },
                   }}
                 >
-                  <PaymentForm onSuccess={handlePaymentSuccess} />
+                  <PaymentForm />
                 </Elements>
               ) : (
                 <p className="text-sm text-gray-400 text-center py-4">

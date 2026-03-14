@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { useCart } from "@/context/CartContext";
 
 type Order = {
   id: string;
@@ -32,12 +33,20 @@ type Order = {
 };
 
 function OrderConfirmationContent() {
-  const params  = useSearchParams();
-  const pi      = params.get("pi");
+  const params   = useSearchParams();
+  // Stripe appends ?payment_intent=pi_xxx when redirecting after payment
+  // We also support ?pi=xxx for manual redirects
+  const pi       = params.get("payment_intent") ?? params.get("pi");
+  const { clearCart } = useCart();
   const [order, setOrder]     = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState("");
   const supabase = createClient();
+
+  // Clear cart as soon as confirmation page loads
+  useEffect(() => {
+    clearCart();
+  }, []);
 
   useEffect(() => {
     if (!pi) { setError("No order reference found."); setLoading(false); return; }
