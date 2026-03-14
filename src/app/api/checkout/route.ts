@@ -6,7 +6,11 @@ type CartItem = {
   productId: string;
   variantId?: string;
   name: string;
+  variantLabel?: string;
   price: number;
+  image?: string;
+  slug: string;
+  deliveryIncluded: boolean;
   quantity: number;
 };
 
@@ -45,7 +49,6 @@ export async function POST(request: Request) {
     // ── Stock validation ──────────────────────────────────────────────────────
     for (const item of items) {
       if (item.variantId) {
-        // Product with variant — check variant stock
         const { data: variant } = await supabase
           .from("product_variants")
           .select("stock_qty, label")
@@ -58,7 +61,6 @@ export async function POST(request: Request) {
             { status: 400 }
           );
         }
-
         if (variant.stock_qty < item.quantity) {
           return NextResponse.json(
             {
@@ -70,7 +72,6 @@ export async function POST(request: Request) {
           );
         }
       } else {
-        // Product without variant — check product stock
         const { data: product } = await supabase
           .from("products")
           .select("stock_qty, track_stock")
@@ -83,8 +84,6 @@ export async function POST(request: Request) {
             { status: 400 }
           );
         }
-
-        // Skip stock check if track_stock is false (unlimited stock)
         if (product.track_stock && product.stock_qty < item.quantity) {
           return NextResponse.json(
             {
@@ -98,20 +97,32 @@ export async function POST(request: Request) {
       }
     }
 
-    // ── Create PaymentIntent ──────────────────────────────────────────────────
-    const subtotalPence = Math.round(
-      items.reduce((sum, i) => sum + i.price * i.quantity, 0) * 100
-    );
-    const deliveryCostPence = calcDeliveryCost(deliveryMethod, subtotalPence);
-    const totalPence = subtotalPence + deliveryCostPence;
+    // ── Calculate totals ──────────────────────────────────────────────────────
+    const subtotalPence      = Math.round(items.reduce((sum, i) => sum + i.price * i.quantity, 0) * 100);
+    const deliveryCostPence  = calcDeliveryCost(deliveryMethod, subtotalPence);
+    const totalPence         = subtotalPence + deliveryCostPence;
 
+    // ── Create PaymentIntent — embed items in metadata ────────────────────────
+    // Stripe metadata values must be strings and total metadata must be < 8KB
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: totalPence,
+      amount:   totalPence,
       currency: "gbp",
       metadata: {
-        user_id:      user.id,
-        address_id:   addressId,
-        delivery_method: deliveryMethod,
+        user_id:          user.id,
+        address_id:       addressId,
+        delivery_method:  deliveryMethod,
+        delivery_cost_pence: String(deliveryCostPence),
+        // Store serialised cart items so webhook never depends on DB cart state
+        items_json: JSON.stringify(items.map(i => ({
+          productId:    i.productId,
+          variantId:    i.variantId ?? null,
+          name:         i.name,
+          variantLabel: i.variantLabel ?? null,
+          price:        i.price,
+          image:        i.image ?? null,
+          slug:         i.slug,
+          quantity:     i.quantity,
+        }))),
       },
       automatic_payment_methods: { enabled: true },
     });

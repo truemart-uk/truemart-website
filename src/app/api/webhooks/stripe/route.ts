@@ -57,11 +57,34 @@ async function handlePaymentSuccess(
   supabase: ReturnType<typeof adminSupabase>,
   pi: Stripe.PaymentIntent
 ) {
-  const { user_id, address_id, delivery_method } = pi.metadata as {
+  const { user_id, address_id, delivery_method, delivery_cost_pence, items_json } = pi.metadata as {
     user_id: string;
     address_id: string;
     delivery_method: DeliveryMethod;
+    delivery_cost_pence: string;
+    items_json: string;
   };
+
+  // ── Parse items from metadata — never rely on DB cart state ──────────────
+  let items: Array<{
+    productId: string;
+    variantId: string | null;
+    name: string;
+    variantLabel: string | null;
+    price: number;
+    image: string | null;
+    slug: string;
+    quantity: number;
+  }>;
+
+  try {
+    items = JSON.parse(items_json);
+  } catch {
+    console.error("Failed to parse items_json from PaymentIntent metadata:", pi.id);
+    return;
+  }
+
+  if (!items?.length) { console.error("No items in metadata for PI:", pi.id); return; }
 
   // Fetch address
   const { data: address } = await supabase
@@ -72,17 +95,7 @@ async function handlePaymentSuccess(
 
   if (!address) { console.error("Address not found:", address_id); return; }
 
-  // Fetch cart items
-  const { data: cartItems } = await supabase
-    .from("cart_items")
-    .select("*")
-    .eq("user_id", user_id)
-    .eq("saved_for_later", false);
-
-  if (!cartItems?.length) { console.error("No cart items for user:", user_id); return; }
-
-  const subtotalPence   = pi.amount - (pi.metadata.delivery_cost_pence ? parseInt(pi.metadata.delivery_cost_pence) : 0);
-  const deliveryCostGbp = DELIVERY_OPTIONS[delivery_method].price / 100;
+  const deliveryCostGbp = parseInt(delivery_cost_pence ?? "0") / 100;
   const totalGbp        = pi.amount / 100;
   const subtotalGbp     = totalGbp - deliveryCostGbp;
 
@@ -113,40 +126,38 @@ async function handlePaymentSuccess(
 
   if (orderError || !order) { console.error("Order creation failed:", orderError); return; }
 
-  // Create order items
-  const orderItems = cartItems.map((item: Record<string, unknown>) => ({
-    order_id:     order.id,
-    product_id:   item.product_id,
-    variant_id:   item.variant_id ?? null,
-    name:         item.snapshot_name,
-    variant_label: item.snapshot_variant_label ?? null,
-    slug:         item.snapshot_slug,
-    image:        item.snapshot_image ?? null,
-    unit_price:   Number(item.snapshot_price),
-    quantity:     item.quantity,
-    line_total:   Number(item.snapshot_price) * (item.quantity as number),
+  // Create order items from metadata
+  const orderItems = items.map(item => ({
+    order_id:      order.id,
+    product_id:    item.productId,
+    variant_id:    item.variantId ?? null,
+    name:          item.name,
+    variant_label: item.variantLabel ?? null,
+    slug:          item.slug,
+    image:         item.image ?? null,
+    unit_price:    item.price,
+    quantity:      item.quantity,
+    line_total:    item.price * item.quantity,
   }));
 
   await supabase.from("order_items").insert(orderItems);
 
-  // ── Decrement stock atomically ─────────────────────────────────────────────
-  for (const item of cartItems) {
-    if (item.variant_id) {
-      // Variant-level stock
+  // ── Decrement stock atomically ────────────────────────────────────────────
+  for (const item of items) {
+    if (item.variantId) {
       await supabase.rpc("decrement_variant_stock", {
-        p_variant_id: item.variant_id,
+        p_variant_id: item.variantId,
         p_qty:        item.quantity,
       });
     } else {
-      // Product-level stock
       await supabase.rpc("decrement_product_stock", {
-        p_product_id: item.product_id,
+        p_product_id: item.productId,
         p_qty:        item.quantity,
       });
     }
   }
 
-  // Clear cart
+  // ── Clear DB cart ─────────────────────────────────────────────────────────
   await supabase.from("cart_items").delete().eq("user_id", user_id);
 
   // Fetch user email
