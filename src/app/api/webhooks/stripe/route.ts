@@ -198,15 +198,6 @@ async function sendConfirmationEmail(
   <tr><td align="center">
     <table width="100%" style="max-width:560px;" cellpadding="0" cellspacing="0">
 
-      <!-- Logo -->
-      <tr><td align="center" style="padding-bottom:24px;">
-        <table cellpadding="0" cellspacing="0"><tr>
-          <td style="background:#FB923C;border-radius:10px;padding:10px 20px;">
-            <span style="font-size:20px;font-weight:900;color:#000;">TRUEMART</span>
-          </td>
-        </tr></table>
-      </td></tr>
-
       <!-- Card -->
       <tr><td style="background:#fff;border-radius:16px;border:1px solid #f0f0ee;padding:40px;">
 
