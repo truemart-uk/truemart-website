@@ -224,6 +224,7 @@ export default function CheckoutPage() {
   const [loadingIntent, setLoadingIntent]       = useState(false);
   const [summaryCollapsed, setSummaryCollapsed] = useState(true);
   const [pageError, setPageError]               = useState("");
+  const [redirecting, setRedirecting]           = useState(false);
 
   // Derived locally — no API needed for display
   const deliveryCost = calcDelivery(deliveryMethod, subtotal);
@@ -234,10 +235,10 @@ export default function CheckoutPage() {
     if (!authLoading && !user) router.push("/account/login?redirect=/checkout");
   }, [user, authLoading]);
 
-  // Redirect if cart is empty
+  // Redirect if cart is empty — but not while redirecting to confirmation
   useEffect(() => {
-    if (!authLoading && !items.length) router.push("/shop/books");
-  }, [items, authLoading]);
+    if (!authLoading && !items.length && !redirecting) router.push("/shop/books");
+  }, [items, authLoading, redirecting]);
 
   // Load addresses
   useEffect(() => {
@@ -283,6 +284,7 @@ export default function CheckoutPage() {
   }, [selectedAddressId, deliveryMethod]);
 
   function handlePaymentSuccess(piId: string) {
+    setRedirecting(true);
     clearCart();
     router.push(`/order/confirmation?pi=${piId}`);
   }
