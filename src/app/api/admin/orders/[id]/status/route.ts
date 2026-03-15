@@ -20,8 +20,9 @@ const STAFF_ALLOWED = ["processing", "shipped", "delivered"];
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const supabase = await createClient();
   const result = await requireRole(supabase, ["admin", "staff"]);
   if (isErrorResponse(result)) return result;
@@ -50,7 +51,7 @@ export async function PATCH(
   const { data: order, error } = await supabase
     .from("orders")
     .update({ status })
-    .eq("id", params.id)
+    .eq("id", id)
     .select("*, order_items(*)")
     .single();
 
