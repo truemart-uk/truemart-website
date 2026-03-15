@@ -22,7 +22,49 @@ export async function middleware(request: NextRequest) {
   )
 
   // Refresh session — do not remove this
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const path = request.nextUrl.pathname
+
+  // ── Protect /admin/* routes ───────────────────────────────────────────────
+  if (path.startsWith('/admin')) {
+    if (!user) {
+      return NextResponse.redirect(new URL('/account/login', request.url))
+    }
+
+    // Check role from profiles table
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const role = profile?.role ?? 'customer'
+
+    if (!['admin', 'staff'].includes(role)) {
+      // Redirect non-admin users to homepage silently
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+  }
+
+  // ── Protect /vendor/* routes ──────────────────────────────────────────────
+  if (path.startsWith('/vendor')) {
+    if (!user) {
+      return NextResponse.redirect(new URL('/account/login', request.url))
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    const role = profile?.role ?? 'customer'
+
+    if (!['admin', 'vendor'].includes(role)) {
+      return NextResponse.redirect(new URL('/', request.url))
+    }
+  }
 
   return supabaseResponse
 }
