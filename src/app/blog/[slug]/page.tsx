@@ -112,7 +112,7 @@ export default async function BlogPostPage({
   return (
     <BlogPostClient
       blog={blog as Blog}
-      comments={(comments as BlogComment[]) ?? []}
+      comments={(comments as unknown as BlogComment[]) ?? []}
       relatedPosts={relatedPosts ?? []}
       relatedProducts={relatedProducts}
     />
