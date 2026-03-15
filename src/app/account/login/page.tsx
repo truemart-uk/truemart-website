@@ -3,13 +3,17 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useCart } from '@/context/CartContext'
+import { useSearchParams } from 'next/navigation'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const supabase = createClient()
   const { mergeGuestCart } = useCart()
+  const params   = useSearchParams()
+  const redirect = params.get('redirect') ?? '/'
 
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -27,13 +31,13 @@ export default function LoginPage() {
       return
     }
     await mergeGuestCart()
-    router.push('/')
+    router.push(redirect)
   }
 
   async function handleGoogle() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${location.origin}/auth/callback` },
+      options: { redirectTo: `${location.origin}/auth/callback?redirect=${encodeURIComponent(redirect)}` },
     })
   }
 
@@ -104,11 +108,19 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-gray-500 mt-5">
           Don't have an account?{' '}
-          <Link href="/account/register" className="text-brand-orange font-medium hover:underline">
+          <Link href={`/account/register?redirect=${encodeURIComponent(redirect)}`} className="text-brand-orange font-medium hover:underline">
             Create one
           </Link>
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }

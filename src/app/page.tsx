@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { SITE } from "@/lib/site";
 import PageHero from "@/components/PageHero";
+import { createClient } from "@/lib/supabase/server";
+import ProductCard from "@/components/ProductCard";
 
 const categories = [
   {
@@ -46,20 +48,6 @@ const categories = [
   },
 ];
 
-const featuredProducts = [
-  { id: 1, name: "Diwali Pooja Thali Set", price: "£24.99", category: "Pooja", badge: "Bestseller" },
-  { id: 2, name: "Ayurvedic Face Cream", price: "£14.99", category: "Cosmetics", badge: "New" },
-  { id: 3, name: "Bhagavad Gita (English)", price: "£12.99", category: "Books", badge: null },
-  { id: 4, name: "Holi Colour Set", price: "£9.99", category: "Festivals", badge: "Trending" },
-];
-
-const recentlySold = [
-  { id: 1, name: "Panchmasi Rakhi Set", price: "£8.99", category: "Festivals", time: "2 hours ago" },
-  { id: 2, name: "Sandalwood Agarbatti", price: "£4.99", category: "Pooja", time: "3 hours ago" },
-  { id: 3, name: "Kumkum & Haldi Set", price: "£6.99", category: "Pooja", time: "5 hours ago" },
-  { id: 4, name: "Ramayana (Illustrated)", price: "£16.99", category: "Books", time: "6 hours ago" },
-];
-
 const testimonials = [
   {
     name: "Anuj Pattni",
@@ -81,31 +69,52 @@ const testimonials = [
   },
 ];
 
-const blogs = [
-  {
-    title: "How to Set Up a Pooja Space at Home in the UK",
-    excerpt: "Creating a sacred corner in your home doesn't require a lot of space. Here's how to do it beautifully.",
-    date: "March 5, 2025",
-    category: "Traditions",
-    emoji: "🪔",
-  },
-  {
-    title: "Top 10 Holi Gifts to Send Your Loved Ones This Year",
-    excerpt: "From colour sets to sweets, we've curated the best Holi gifts you can order online in the UK.",
-    date: "February 28, 2025",
-    category: "Festivals",
-    emoji: "🎨",
-  },
-  {
-    title: "5 Ayurvedic Beauty Products Every Woman Should Try",
-    excerpt: "Natural, time-tested beauty secrets from India that are taking the UK wellness market by storm.",
-    date: "February 20, 2025",
-    category: "Cosmetics",
-    emoji: "✨",
-  },
-];
+export default async function Home() {
+  const supabase = await createClient();
 
-export default function Home() {
+  const { data: featuredProducts } = await supabase
+    .from("products")
+    .select(`
+      id, name, slug, short_description, price, compare_at_price,
+      images, badge, stock_qty, rating, review_count,
+      is_featured, delivery_included, tags,
+      product_variants(id, type, value, label, price, compare_at_price, stock_qty, is_default, display_order, images)
+    `)
+    .eq("is_featured", true)
+    .eq("is_published", true)
+    .order("name");
+
+  // Fetch most recently ordered items for "Just Sold" section
+  const { data: recentOrderItems } = await supabase
+    .from("order_items")
+    .select("name, variant_label, unit_price, image, slug, created_at")
+    .order("created_at", { ascending: false })
+    .limit(4);
+
+  function timeAgo(date: Date): string {
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (seconds < 3600)  return `${Math.floor(seconds / 60)} minutes ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`;
+    return `${Math.floor(seconds / 86400)} days ago`;
+  }
+
+  const recentlySold = (recentOrderItems ?? []).map(item => ({
+    name:     item.name,
+    category: item.variant_label ?? "",
+    price:    `£${Number(item.unit_price).toFixed(2)}`,
+    image:    item.image ?? null,
+    slug:     item.slug,
+    time:     timeAgo(new Date(item.created_at)),
+  }));
+
+  // Fetch latest 3 published blog posts for homepage
+  const { data: latestBlogs } = await supabase
+    .from("blogs")
+    .select("id, title, slug, excerpt, cover_image, category, published_at, reading_time_minutes")
+    .eq("is_published", true)
+    .order("published_at", { ascending: false })
+    .limit(3);
+
   return (
     <main className="min-h-screen bg-background">
 
@@ -244,6 +253,7 @@ export default function Home() {
       </section>
 
       {/* Recently Sold */}
+      {recentlySold.length > 0 && (
       <section className="bg-white py-12 border-y border-orange-50">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between mb-8">
@@ -251,25 +261,34 @@ export default function Home() {
               <h2 className="text-2xl font-bold text-gray-900">🛍️ Just Sold at TrueMart</h2>
               <p className="text-gray-500 text-sm mt-1">Curious what others are buying? Your next favourite might be here.</p>
             </div>
-            <Link href="/shop" className="text-brand-orange text-sm font-semibold hover:underline">See all →</Link>
+            <Link href="/shop/books" className="text-brand-orange text-sm font-semibold hover:underline">See all →</Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {recentlySold.map((item) => (
-              <div key={item.id} className="border border-gray-100 rounded-2xl p-4 hover:shadow-md transition-all hover:-translate-y-0.5">
-                <div className="h-32 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl flex items-center justify-center mb-3">
-                  <span className="text-4xl">🛍️</span>
+            {recentlySold.map((item, i) => (
+              <Link key={i} href={`/products/${item.slug}`} className="border border-gray-100 rounded-2xl p-4 hover:shadow-md transition-all hover:-translate-y-0.5 block">
+                <div className="h-32 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl flex items-center justify-center mb-3 overflow-hidden">
+                  {item.image ? (
+                    <img
+                      src={`https://res.cloudinary.com/truemart/image/upload/w_200,h_200,c_pad,b_white,f_auto,q_80/${item.image}`}
+                      alt={item.name}
+                      className="w-full h-full object-contain p-2"
+                    />
+                  ) : (
+                    <span className="text-4xl">🛍️</span>
+                  )}
                 </div>
-                <p className="text-xs text-brand-orange font-semibold mb-1">{item.category}</p>
+                {item.category && <p className="text-xs text-brand-orange font-semibold mb-1">{item.category}</p>}
                 <h3 className="font-bold text-gray-900 text-sm mb-1 leading-tight">{item.name}</h3>
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-gray-900">{item.price}</span>
                   <span className="text-xs text-gray-400">{item.time}</span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
       </section>
+      )}
 
       {/* Festival Banner */}
       <section className="mx-6 md:mx-auto max-w-7xl my-16">
@@ -297,27 +316,8 @@ export default function Home() {
           <p className="text-gray-500">Handpicked favourites from our collection</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {featuredProducts.map((product) => (
-            <div key={product.id} className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-              <div className="h-48 bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center relative">
-                <span className="text-5xl">🛍️</span>
-                {product.badge && (
-                  <span className="absolute top-3 left-3 bg-brand-orange text-white text-xs px-2 py-1 rounded-full font-semibold">
-                    {product.badge}
-                  </span>
-                )}
-              </div>
-              <div className="p-4">
-                <p className="text-xs text-brand-orange font-semibold mb-1">{product.category}</p>
-                <h3 className="font-bold text-gray-900 text-sm mb-2 leading-tight">{product.name}</h3>
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold text-gray-900">{product.price}</span>
-                  <button className="bg-brand-orange text-white text-xs px-3 py-1.5 rounded-full hover:bg-orange-600 transition-colors">
-                    Add to Cart
-                  </button>
-                </div>
-              </div>
-            </div>
+          {(featuredProducts ?? []).map((product) => (
+            <ProductCard key={product.id} product={product} />
           ))}
         </div>
       </section>
@@ -363,19 +363,30 @@ export default function Home() {
           <Link href="/blog" className="text-brand-orange text-sm font-semibold hover:underline">See all →</Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {blogs.map((blog) => (
-            <Link key={blog.title} href="/blog"
+          {(latestBlogs ?? []).map((blog) => (
+            <Link key={blog.id} href={`/blog/${blog.slug}`}
               className="group bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-              <div className="h-40 bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center">
-                <span className="text-6xl">{blog.emoji}</span>
+              <div className="h-40 bg-gradient-to-br from-orange-50 to-amber-50 flex items-center justify-center overflow-hidden">
+                {blog.cover_image ? (
+                  <img
+                    src={`https://res.cloudinary.com/truemart/image/upload/w_400,h_200,c_fill,f_auto,q_80/${blog.cover_image}`}
+                    alt={blog.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-6xl opacity-20">📖</span>
+                )}
               </div>
               <div className="p-5">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs bg-orange-100 text-brand-orange px-2 py-0.5 rounded-full font-semibold">{blog.category}</span>
-                  <span className="text-xs text-gray-400">{blog.date}</span>
+                  <span className="text-xs text-gray-400">
+                    {new Date(blog.published_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  </span>
                 </div>
-                <h3 className="font-bold text-gray-900 text-sm mb-2 leading-snug group-hover:text-brand-orange transition-colors">{blog.title}</h3>
-                <p className="text-xs text-gray-500 leading-relaxed">{blog.excerpt}</p>
+                <h3 className="font-bold text-gray-900 text-sm mb-2 leading-snug group-hover:text-brand-orange transition-colors line-clamp-2">{blog.title}</h3>
+                <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{blog.excerpt}</p>
+                <p className="text-xs text-brand-orange font-semibold mt-3">{blog.reading_time_minutes} min read →</p>
               </div>
             </Link>
           ))}
