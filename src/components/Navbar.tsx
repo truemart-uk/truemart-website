@@ -222,7 +222,7 @@ export default function Navbar() {
               { label: "Pooja Essentials", href: "/shop/pooja", icon: "🪔" },
               { label: "Cosmetics", href: "/shop/cosmetics", icon: "✨" },
               { label: "Festivals", href: "/shop/festivals", icon: "🎉", highlight: true },
-              { label: "Panchmasi Rakhi", href: "/shop/rakhi", icon: "🧵" },
+              { label: "Panchmasi Rakhi", href: "/shop/panchmasi", icon: "🧵" },
               { label: "About Us", href: "/about", icon: null },
             ].map((item) => (
               <Link

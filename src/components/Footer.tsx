@@ -21,19 +21,19 @@ export default function Footer() {
           <div className="md:col-span-4">
             <Image src="/truemart_logo.png" alt="TrueMart" width={110} height={55} className="object-contain mb-5" />
             <p className="text-gray-500 text-sm leading-relaxed mb-6 max-w-xs">
-              Bringing the heart of India to your home. Authentic products, sacred essentials and festive joy — delivered across the UK.
+              Bringing meaningful traditions into everyday living. Authentic products, cherished essentials and moments of joy — delivered to your doorstep.
             </p>
 
             {/* Social Icons */}
             <div className="flex items-center gap-3">
               <p className="text-gray-500 text-xs font-semibold tracking-widest uppercase mr-1">Follow</p>
               {[
-                { label: "Facebook", href: "#", path: "M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z" },
-                { label: "Instagram", href: "#", path: "M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01M6.5 19.5h11a3 3 0 003-3v-11a3 3 0 00-3-3h-11a3 3 0 00-3 3v11a3 3 0 003 3z" },
-                { label: "X", href: "#", path: "M4 4l16 16M4 20L20 4" },
-                { label: "WhatsApp", href: "#", path: "M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" },
+                { label: "Facebook", href: "#", path: "M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z", target: "_blank", rel: "noopener noreferrer" },
+                { label: "Instagram", href: "#", path: "M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01M6.5 19.5h11a3 3 0 003-3v-11a3 3 0 00-3-3h-11a3 3 0 00-3 3v11a3 3 0 003 3z", target: "_blank", rel: "noopener noreferrer" },
+                { label: "X", href: "https://x.com/TrueMart_UK", path: "M4 4l16 16M4 20L20 4", target: "_blank", rel: "noopener noreferrer" },
+                { label: "WhatsApp", href: "#", path: "M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z", target: "_blank", rel: "noopener noreferrer" },
               ].map((social) => (
-                <a key={social.label} href={social.href} aria-label={social.label}
+                <a key={social.label} href={social.href} target={social.target}  rel={social.rel} aria-label={social.label}
                   className="w-9 h-9 rounded-full border border-orange-200 bg-orange-50 flex items-center justify-center text-gray-500 hover:bg-brand-orange hover:text-white hover:border-brand-orange transition-all duration-200">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d={social.path} />
@@ -57,7 +57,7 @@ export default function Footer() {
                   { label: "Pooja Essentials", href: "/shop/pooja" },
                   { label: "Cosmetics", href: "/shop/cosmetics" },
                   { label: "Festivals", href: "/shop/festivals" },
-                  { label: "Panchmasi Rakhi", href: "/shop/rakhi" },
+                  { label: "Panchmasi Rakhi", href: "/shop/panchmasi" },
                 ].map(item => (
                   <li key={item.label}>
                     <Link href={item.href} className="text-gray-500 text-sm hover:text-brand-orange transition-colors flex items-center gap-2 group">

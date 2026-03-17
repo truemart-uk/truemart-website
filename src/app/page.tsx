@@ -39,12 +39,12 @@ const categories = [
     emoji: "🎉",
   },
   {
-    name: "TruePrints",
-    tagline: "Print With Purpose",
-    href: "/shop/trueprints",
+    name: "Panchmasi Rakhi",
+    tagline: "Five Months, One Bond",
+    href: "/shop/panchmasi",
     bg: "#F5F0FF",
     accent: "#6B21A8",
-    emoji: "🖼️",
+    emoji: "🧵",
   },
 ];
 

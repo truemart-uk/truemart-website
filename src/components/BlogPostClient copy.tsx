@@ -297,10 +297,10 @@ export default function BlogPostClient({
           <SocialShare title={blog.title} slug={blog.slug} />
         </div>
 
-        {/* Markdown content — strip leading H1 to avoid duplicate with page title */}
-        <div className="prose prose-orange max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-h2:text-2xl prose-h3:text-xl prose-p:text-gray-700 prose-p:leading-relaxed prose-li:text-gray-700 prose-strong:text-gray-900 prose-a:text-brand-orange prose-a:no-underline hover:prose-a:underline prose-hr:border-gray-100 prose-table:w-full prose-th:text-left prose-img:rounded-2xl">
+        {/* Markdown content */}
+        <div className="prose prose-orange max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-p:text-gray-700 prose-p:leading-relaxed prose-li:text-gray-700 prose-strong:text-gray-900 prose-a:text-brand-orange prose-a:no-underline hover:prose-a:underline prose-hr:border-gray-100">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {blog.content.replace(/^#\s+.+\n?/, "")}
+            {blog.content}
           </ReactMarkdown>
         </div>
 
