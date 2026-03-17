@@ -4,9 +4,6 @@ import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import BlogPostClient from "@/components/BlogPostClient";
 
-// Always fetch fresh from Supabase — never serve a cached version
-export const dynamic = "force-dynamic";
-
 type Blog = {
   id: string;
   title: string;
