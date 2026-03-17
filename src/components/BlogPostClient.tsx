@@ -323,8 +323,14 @@ export default function BlogPostClient({
         {/* Related products */}
         {relatedProducts.length > 0 && (
           <div className="mt-12">
-            <h2 className="text-xl font-bold text-gray-900 mb-5 flex items-center gap-2">
-              🛍️ Products mentioned in this post
+            <h2 className="text-xl font-bold text-gray-900 mb-5 flex items-center justify-between gap-2">
+              <span>🛍️ We Think You'll Love These Products</span>
+              <Link
+                href="/shop"
+                className="text-sm font-semibold text-brand-orange hover:underline flex items-center gap-1"
+              >
+                View all products →
+              </Link>
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {relatedProducts.map((product: RelatedProduct) => (

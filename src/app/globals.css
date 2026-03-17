@@ -14,3 +14,9 @@ body {
   color: #171717;
   font-family: var(--font-sans);
 }
+
+.prose :where(hr) {
+  margin-top: 0.75rem !important;
+  margin-bottom: 0.75rem !important;
+  border-color: #f3f4f6 !important;
+}
