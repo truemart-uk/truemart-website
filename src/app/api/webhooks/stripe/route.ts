@@ -6,7 +6,6 @@ import Stripe from "stripe";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Service role client — bypasses RLS for order creation
 function adminSupabase() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,7 +27,6 @@ export async function POST(request: Request) {
 
   const supabase = adminSupabase();
 
-  // Idempotency check — don't process the same event twice
   const { data: existing } = await supabase
     .from("stripe_events")
     .select("id")
@@ -39,7 +37,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true });
   }
 
-  // Log event immediately
   await supabase.from("stripe_events").insert({ id: event.id, type: event.type });
 
   if (event.type === "payment_intent.succeeded") {
@@ -47,7 +44,6 @@ export async function POST(request: Request) {
     await handlePaymentSuccess(supabase, pi);
   }
 
-  // Mark processed
   await supabase.from("stripe_events").update({ processed: true }).eq("id", event.id);
 
   return NextResponse.json({ received: true });
@@ -57,15 +53,21 @@ async function handlePaymentSuccess(
   supabase: ReturnType<typeof adminSupabase>,
   pi: Stripe.PaymentIntent
 ) {
-  const { user_id, address_id, delivery_method, delivery_cost_pence, items_json } = pi.metadata as {
+  const {
+    user_id, address_id, delivery_method,
+    delivery_cost_pence, items_json,
+    coupon_code, coupon_discount_pence,
+  } = pi.metadata as {
     user_id: string;
     address_id: string;
     delivery_method: DeliveryMethod;
     delivery_cost_pence: string;
     items_json: string;
+    coupon_code?: string;
+    coupon_discount_pence?: string;
   };
 
-  // ── Parse items from metadata — never rely on DB cart state ──────────────
+  // ── Parse items from metadata ─────────────────────────────────────────────
   let items: Array<{
     productId: string;
     variantId: string | null;
@@ -95,9 +97,10 @@ async function handlePaymentSuccess(
 
   if (!address) { console.error("Address not found:", address_id); return; }
 
-  const deliveryCostGbp = parseInt(delivery_cost_pence ?? "0") / 100;
-  const totalGbp        = pi.amount / 100;
-  const subtotalGbp     = totalGbp - deliveryCostGbp;
+  const deliveryCostGbp   = parseInt(delivery_cost_pence ?? "0") / 100;
+  const couponDiscountGbp = parseInt(coupon_discount_pence ?? "0") / 100;
+  const totalGbp          = pi.amount / 100;
+  const subtotalGbp       = totalGbp - deliveryCostGbp + couponDiscountGbp;
 
   // Create order
   const { data: order, error: orderError } = await supabase
@@ -120,13 +123,15 @@ async function handlePaymentSuccess(
       shipping_phone:    address.phone ?? null,
       stripe_payment_intent_id: pi.id,
       stripe_payment_status:    pi.status,
+      coupon_code:       coupon_code || null,
+      coupon_discount:   couponDiscountGbp,
     })
     .select()
     .single();
 
   if (orderError || !order) { console.error("Order creation failed:", orderError); return; }
 
-  // Create order items from metadata
+  // Create order items
   const orderItems = items.map(item => ({
     order_id:      order.id,
     product_id:    item.productId,
@@ -141,6 +146,26 @@ async function handlePaymentSuccess(
   }));
 
   await supabase.from("order_items").insert(orderItems);
+
+  // ── Record coupon redemption ───────────────────────────────────────────────
+  if (coupon_code) {
+    const { data: coupon } = await supabase
+      .from("coupons")
+      .select("id")
+      .eq("code", coupon_code)
+      .single();
+
+    if (coupon) {
+      const { data: { user: authUser } } = await supabase.auth.admin.getUserById(user_id);
+      await supabase.from("coupon_redemptions").insert({
+        coupon_id:       coupon.id,
+        order_id:        order.id,
+        user_id,
+        email:           authUser?.email ?? "",
+        discount_amount: couponDiscountGbp,
+      });
+    }
+  }
 
   // ── Decrement stock atomically ────────────────────────────────────────────
   for (const item of items) {
@@ -189,6 +214,12 @@ async function sendConfirmationEmail(
     </tr>
   `).join("");
 
+  const couponRow = order.coupon_code && Number(order.coupon_discount) > 0 ? `
+    <tr>
+      <td style="font-size:13px;color:#16A34A;padding:4px 0;">Discount (${order.coupon_code})</td>
+      <td style="font-size:13px;color:#16A34A;text-align:right;">-£${Number(order.coupon_discount).toFixed(2)}</td>
+    </tr>` : "";
+
   const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -198,28 +229,33 @@ async function sendConfirmationEmail(
   <tr><td align="center">
     <table width="100%" style="max-width:560px;" cellpadding="0" cellspacing="0">
 
+      <!-- Logo -->
+      <tr><td align="center" style="padding-bottom:24px;">
+        <table cellpadding="0" cellspacing="0"><tr>
+          <td style="background:#FB923C;border-radius:10px;padding:10px 20px;">
+            <span style="font-size:20px;font-weight:900;color:#000;">TRUEMART</span>
+          </td>
+        </tr></table>
+      </td></tr>
+
       <!-- Card -->
       <tr><td style="background:#fff;border-radius:16px;border:1px solid #f0f0ee;padding:40px;">
 
-        <!-- Icon + heading -->
         <div style="text-align:center;margin-bottom:24px;">
           <div style="font-size:40px;margin-bottom:12px;">🎉</div>
           <h1 style="margin:0;font-size:22px;font-weight:700;color:#111;">Order confirmed!</h1>
           <p style="margin:8px 0 0;font-size:14px;color:#6B7280;">Thank you for your order. We'll have it with you soon.</p>
         </div>
 
-        <!-- Order number -->
         <div style="background:#FFF7ED;border-radius:10px;padding:14px 16px;margin-bottom:24px;text-align:center;">
           <p style="margin:0;font-size:12px;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.05em;">Order reference</p>
           <p style="margin:4px 0 0;font-size:16px;font-weight:700;color:#FB923C;">#${String(order.id).slice(0,8).toUpperCase()}</p>
         </div>
 
-        <!-- Items -->
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
           ${itemsHtml}
         </table>
 
-        <!-- Totals -->
         <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
           <tr>
             <td style="font-size:13px;color:#6B7280;padding:4px 0;">Subtotal</td>
@@ -229,13 +265,13 @@ async function sendConfirmationEmail(
             <td style="font-size:13px;color:#6B7280;padding:4px 0;">Delivery (${order.delivery_method === 'express' ? 'Express' : 'Standard'})</td>
             <td style="font-size:13px;color:#6B7280;text-align:right;">${Number(order.delivery_cost) === 0 ? 'FREE' : '£' + Number(order.delivery_cost).toFixed(2)}</td>
           </tr>
+          ${couponRow}
           <tr>
             <td style="font-size:15px;font-weight:700;color:#111;padding:10px 0 4px;border-top:2px solid #F3F4F6;">Total</td>
             <td style="font-size:15px;font-weight:700;color:#FB923C;text-align:right;padding:10px 0 4px;border-top:2px solid #F3F4F6;">£${Number(order.total).toFixed(2)}</td>
           </tr>
         </table>
 
-        <!-- Delivery address -->
         <div style="background:#F9FAFB;border-radius:10px;padding:16px;margin-bottom:24px;">
           <p style="margin:0 0 8px;font-size:12px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.05em;">Delivering to</p>
           <p style="margin:0;font-size:14px;color:#374151;line-height:1.6;">
@@ -249,7 +285,6 @@ async function sendConfirmationEmail(
           </p>
         </div>
 
-        <!-- CTA -->
         <div style="text-align:center;">
           <a href="https://www.truemart.co.uk/account/orders" style="display:inline-block;background:#FB923C;color:#fff;font-weight:700;font-size:14px;padding:14px 32px;border-radius:12px;text-decoration:none;">
             View My Orders

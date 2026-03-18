@@ -4,6 +4,7 @@ import { SITE } from "@/lib/site";
 import PageHero from "@/components/PageHero";
 import { createClient } from "@/lib/supabase/server";
 import ProductCard from "@/components/ProductCard";
+import NewsletterSection from "@/components/NewsletterSection";
 
 const categories = [
   {
@@ -252,6 +253,38 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* Featured Products */}
+      <section className="max-w-7xl mx-auto px-6 pb-16">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Featured Products</h2>
+          <p className="text-gray-500">Handpicked favourites from our collection</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          {(featuredProducts ?? []).map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      </section>
+
+      {/* Festival Banner */}
+      <section className="mx-6 md:mx-auto max-w-7xl my-16">
+        <div className="bg-gradient-to-r from-brand-orange to-brand-red rounded-3xl p-10 md:p-14 text-white text-center relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff'%3E%3Ccircle cx='20' cy='20' r='3'/%3E%3C/g%3E%3C/svg%3E")`
+          }} />
+          <div className="relative">
+            <p className="text-orange-200 text-sm font-semibold tracking-widest uppercase mb-2">🎨 Coming Soon</p>
+            <h2 className="text-3xl md:text-5xl font-bold mb-3">Holi is Around the Corner!</h2>
+            <p className="text-orange-100 text-lg mb-6 max-w-xl mx-auto">
+              Get your colours, sweets and celebration essentials delivered across the UK in time for the festival.
+            </p>
+            <Link href="/shop/festivals" className="inline-block bg-white text-brand-orange px-8 py-3 rounded-full font-bold hover:bg-orange-50 transition-colors shadow-lg">
+              Shop Holi Collection
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Recently Sold */}
       {recentlySold.length > 0 && (
       <section className="bg-white py-12 border-y border-orange-50">
@@ -261,7 +294,7 @@ export default async function Home() {
               <h2 className="text-2xl font-bold text-gray-900">🛍️ Just Sold at TrueMart</h2>
               <p className="text-gray-500 text-sm mt-1">Curious what others are buying? Your next favourite might be here.</p>
             </div>
-            <Link href="/shop/books" className="text-brand-orange text-sm font-semibold hover:underline">See all →</Link>
+            <Link href="/shop" className="text-brand-orange text-sm font-semibold hover:underline">Explore the shop →</Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {recentlySold.map((item, i) => (
@@ -289,38 +322,6 @@ export default async function Home() {
         </div>
       </section>
       )}
-
-      {/* Festival Banner */}
-      <section className="mx-6 md:mx-auto max-w-7xl my-16">
-        <div className="bg-gradient-to-r from-brand-orange to-brand-red rounded-3xl p-10 md:p-14 text-white text-center relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10" style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff'%3E%3Ccircle cx='20' cy='20' r='3'/%3E%3C/g%3E%3C/svg%3E")`
-          }} />
-          <div className="relative">
-            <p className="text-orange-200 text-sm font-semibold tracking-widest uppercase mb-2">🎨 Coming Soon</p>
-            <h2 className="text-3xl md:text-5xl font-bold mb-3">Holi is Around the Corner!</h2>
-            <p className="text-orange-100 text-lg mb-6 max-w-xl mx-auto">
-              Get your colours, sweets and celebration essentials delivered across the UK in time for the festival.
-            </p>
-            <Link href="/shop/festivals" className="inline-block bg-white text-brand-orange px-8 py-3 rounded-full font-bold hover:bg-orange-50 transition-colors shadow-lg">
-              Shop Holi Collection
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Products */}
-      <section className="max-w-7xl mx-auto px-6 pb-16">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Featured Products</h2>
-          <p className="text-gray-500">Handpicked favourites from our collection</p>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {(featuredProducts ?? []).map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
 
       {/* Testimonials */}
       <section className="bg-orange-50 py-16">
@@ -360,7 +361,7 @@ export default async function Home() {
             <h2 className="text-3xl font-bold text-gray-900">📝 TrueBlogs</h2>
             <p className="text-gray-500 text-sm mt-1">Festivals, traditions, lifestyle and more</p>
           </div>
-          <Link href="/blog" className="text-brand-orange text-sm font-semibold hover:underline">See all →</Link>
+          <Link href="/blog" className="text-brand-orange text-sm font-semibold hover:underline">Explore the Stories →</Link>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {(latestBlogs ?? []).map((blog) => (
@@ -394,25 +395,7 @@ export default async function Home() {
       </section>
 
       {/* Newsletter */}
-      <section className="bg-gradient-to-br from-gray-900 to-gray-800 py-16">
-        <div className="max-w-2xl mx-auto px-6 text-center">
-          <p className="text-brand-orange text-sm font-semibold tracking-widest uppercase mb-2">Stay Connected</p>
-          <h2 className="text-3xl font-bold text-white mb-3">Get Festival Updates & Offers</h2>
-          <p className="text-gray-400 mb-2">Subscribe and get <span className="text-brand-orange font-semibold">10% off</span> your first order.</p>
-          <p className="text-gray-500 text-xs mb-6">New arrivals, festive inspiration and exclusive deals — straight to your inbox.</p>
-          <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            <input
-              type="email"
-              placeholder="Enter your email address"
-              className="flex-1 px-5 py-3 rounded-full bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange"
-            />
-            <button className="bg-brand-orange text-white px-6 py-3 rounded-full font-semibold hover:bg-orange-600 transition-colors whitespace-nowrap">
-              Subscribe
-            </button>
-          </div>
-          <p className="text-gray-600 text-xs mt-3">No spam, unsubscribe anytime. See our Privacy Policy.</p>
-        </div>
-      </section>
+      <NewsletterSection />
 
       {/* Trust Badges */}
       <section className="bg-white border-t border-orange-50 py-10">

@@ -11,6 +11,8 @@ type Order = {
   total: number;
   subtotal: number;
   delivery_cost: number;
+  coupon_code?: string;
+  coupon_discount?: number;
   delivery_method: string;
   delivery_estimate: string;
   shipping_name: string;
@@ -158,6 +160,12 @@ function OrderConfirmationContent() {
               <span>Delivery ({order.delivery_method === "express" ? "Express" : "Standard"})</span>
               <span>{order.delivery_cost === 0 ? <span className="text-green-600 font-medium">FREE</span> : `£${order.delivery_cost.toFixed(2)}`}</span>
             </div>
+            {order.coupon_code && Number(order.coupon_discount) > 0 && (
+              <div className="flex justify-between text-sm text-green-600 font-medium">
+                <span>Discount ({order.coupon_code})</span>
+                <span>-£{Number(order.coupon_discount).toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex justify-between font-bold text-gray-900 pt-2 border-t border-gray-100">
               <span>Total paid</span>
               <span className="text-brand-orange">£{order.total.toFixed(2)}</span>

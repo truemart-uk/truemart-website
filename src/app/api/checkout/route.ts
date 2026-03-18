@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { stripe, calcDeliveryCost, DELIVERY_OPTIONS, DeliveryMethod } from "@/lib/stripe";
+
+function adminSupabase() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 type CartItem = {
   productId: string;
@@ -24,10 +32,12 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { items, deliveryMethod, addressId } = body as {
+    const { items, deliveryMethod, addressId, couponCode, existingPaymentIntentId } = body as {
       items: CartItem[];
       deliveryMethod: DeliveryMethod;
       addressId: string;
+      couponCode?: string;
+      existingPaymentIntentId?: string;
     };
 
     if (!items?.length || !deliveryMethod || !addressId) {
@@ -98,21 +108,78 @@ export async function POST(request: Request) {
     }
 
     // ── Calculate totals ──────────────────────────────────────────────────────
-    const subtotalPence      = Math.round(items.reduce((sum, i) => sum + i.price * i.quantity, 0) * 100);
-    const deliveryCostPence  = calcDeliveryCost(deliveryMethod, subtotalPence);
-    const totalPence         = subtotalPence + deliveryCostPence;
+    const subtotalPence     = Math.round(items.reduce((sum, i) => sum + i.price * i.quantity, 0) * 100);
+    const deliveryCostPence = calcDeliveryCost(deliveryMethod, subtotalPence);
+
+    // ── Apply coupon if provided ──────────────────────────────────────────────
+    let couponDiscountPence  = 0;
+    let validatedCouponCode: string | null = null;
+
+    if (couponCode) {
+      const admin = adminSupabase();
+      const { data: coupon } = await admin
+        .from("coupons")
+        .select("*")
+        .eq("code", couponCode.toUpperCase().trim())
+        .single();
+
+      if (coupon && coupon.is_active) {
+        let valid = true;
+
+        if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) valid = false;
+
+        if (valid && coupon.first_order_only) {
+          const { count } = await admin
+            .from("orders")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .in("status", ["paid", "processing", "shipped", "delivered"]);
+          if ((count ?? 0) > 0) valid = false;
+        }
+
+        if (valid && coupon.uses_per_customer !== null) {
+          const { count } = await admin
+            .from("coupon_redemptions")
+            .select("id", { count: "exact", head: true })
+            .eq("coupon_id", coupon.id)
+            .eq("user_id", user.id);
+          if ((count ?? 0) >= coupon.uses_per_customer) valid = false;
+        }
+
+        if (valid) {
+          if (coupon.discount_type === "percent") {
+            couponDiscountPence = Math.round((subtotalPence * coupon.discount_value) / 100);
+          } else {
+            couponDiscountPence = Math.min(Math.round(coupon.discount_value * 100), subtotalPence);
+          }
+          validatedCouponCode = coupon.code;
+        }
+      }
+    }
+
+    const totalPence = Math.max(subtotalPence + deliveryCostPence - couponDiscountPence, 50);
+
+    // ── Cancel existing PaymentIntent if provided ─────────────────────────────
+    // This prevents ghost PaymentIntents from triggering the webhook
+    if (existingPaymentIntentId) {
+      try {
+        await stripe.paymentIntents.cancel(existingPaymentIntentId);
+      } catch {
+        // Ignore — it may already be cancelled or succeeded
+      }
+    }
 
     // ── Create PaymentIntent — embed items in metadata ────────────────────────
-    // Stripe metadata values must be strings and total metadata must be < 8KB
     const paymentIntent = await stripe.paymentIntents.create({
       amount:   totalPence,
       currency: "gbp",
       metadata: {
-        user_id:          user.id,
-        address_id:       addressId,
-        delivery_method:  deliveryMethod,
-        delivery_cost_pence: String(deliveryCostPence),
-        // Store serialised cart items so webhook never depends on DB cart state
+        user_id:               user.id,
+        address_id:            addressId,
+        delivery_method:       deliveryMethod,
+        delivery_cost_pence:   String(deliveryCostPence),
+        coupon_code:           validatedCouponCode ?? "",
+        coupon_discount_pence: String(couponDiscountPence),
         items_json: JSON.stringify(items.map(i => ({
           productId:    i.productId,
           variantId:    i.variantId ?? null,
@@ -129,11 +196,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       clientSecret:        paymentIntent.client_secret,
+      paymentIntentId:     paymentIntent.id,
       subtotal:            subtotalPence / 100,
       deliveryCost:        deliveryCostPence / 100,
+      couponDiscount:      couponDiscountPence / 100,
       total:               totalPence / 100,
       deliveryLabel:       DELIVERY_OPTIONS[deliveryMethod].label,
       deliveryDescription: DELIVERY_OPTIONS[deliveryMethod].description,
+      appliedCoupon:       validatedCouponCode,
     });
 
   } catch (err) {

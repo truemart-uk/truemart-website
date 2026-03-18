@@ -51,15 +51,17 @@ type Address = {
 // ── ORDER SUMMARY ─────────────────────────────────────────────────────────────
 
 function OrderSummary({
-  subtotal, deliveryCost, collapsed, onToggle,
+  subtotal, deliveryCost, couponDiscount, appliedCoupon, collapsed, onToggle,
 }: {
   subtotal: number;
   deliveryCost: number;
+  couponDiscount: number;
+  appliedCoupon: string | null;
   collapsed: boolean;
   onToggle: () => void;
 }) {
   const { items } = useCart();
-  const total = subtotal + deliveryCost;
+  const total = subtotal + deliveryCost - couponDiscount;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -119,6 +121,15 @@ function OrderSummary({
             <span>Subtotal</span>
             <span>£{subtotal.toFixed(2)}</span>
           </div>
+          {couponDiscount > 0 && appliedCoupon && (
+            <div className="flex justify-between text-sm text-green-600 font-medium">
+              <span>Discount ({appliedCoupon})</span>
+              <span>-£{couponDiscount.toFixed(2)}</span>
+            </div>
+          )}
+
+
+
           <div className="flex justify-between text-sm text-gray-500">
             <span>Delivery</span>
             <span>
@@ -127,6 +138,7 @@ function OrderSummary({
                 : `£${deliveryCost.toFixed(2)}`}
             </span>
           </div>
+
           <div className="flex justify-between font-bold text-gray-900 text-base pt-2 border-t border-gray-100">
             <span>Total</span>
             <span className="text-brand-orange">£{total.toFixed(2)}</span>
@@ -219,14 +231,22 @@ export default function CheckoutPage() {
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
   const [deliveryMethod, setDeliveryMethod]     = useState<DeliveryMethod>("standard");
   const [clientSecret, setClientSecret]         = useState<string>("");
+  const [paymentIntentId, setPaymentIntentId]   = useState<string>("");
   const [loadingIntent, setLoadingIntent]       = useState(false);
   const [summaryCollapsed, setSummaryCollapsed] = useState(true);
   const [pageError, setPageError]               = useState("");
   const [redirecting, setRedirecting]           = useState(false);
 
+  // Coupon state
+  const [couponInput, setCouponInput]       = useState("");
+  const [couponLoading, setCouponLoading]   = useState(false);
+  const [couponError, setCouponError]       = useState("");
+  const [appliedCoupon, setAppliedCoupon]   = useState<string | null>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+
   // Derived locally — no API needed for display
   const deliveryCost = calcDelivery(deliveryMethod, subtotal);
-  const total        = subtotal + deliveryCost;
+  const total        = subtotal + deliveryCost - couponDiscount;
 
   // Redirect if not logged in
   useEffect(() => {
@@ -255,27 +275,76 @@ export default function CheckoutPage() {
   }, [user]);
 
   // Create PaymentIntent — only called when Stripe keys exist and all fields ready
-  const createIntent = useCallback(async () => {
+  const createIntent = useCallback(async (coupon?: string | null) => {
     if (!selectedAddressId || !items.length || !process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) return;
     setLoadingIntent(true);
+    setClientSecret(""); // Reset so Elements unmounts and remounts with new secret
     setPageError("");
 
     const res = await fetch("/api/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ items, deliveryMethod, addressId: selectedAddressId }),
+      body: JSON.stringify({
+        items,
+        deliveryMethod,
+        addressId: selectedAddressId,
+        couponCode: coupon !== undefined ? coupon : appliedCoupon,
+        existingPaymentIntentId: paymentIntentId || undefined,
+      }),
     });
 
     const data = await res.json();
     if (!res.ok) {
       setPageError(data.error ?? "Something went wrong.");
+      if (coupon !== undefined && coupon !== null) {
+        setAppliedCoupon(null);
+        setCouponDiscount(0);
+        setCouponError(data.error ?? "Coupon could not be applied.");
+      }
       setLoadingIntent(false);
       return;
     }
 
     setClientSecret(data.clientSecret);
+    setPaymentIntentId(data.paymentIntentId ?? "");
     setLoadingIntent(false);
-  }, [selectedAddressId, deliveryMethod, items]);
+  }, [selectedAddressId, deliveryMethod, items, appliedCoupon, paymentIntentId]);
+
+  async function applyCoupon() {
+    if (!couponInput.trim()) return;
+    setCouponLoading(true);
+    setCouponError("");
+
+    const res = await fetch("/api/coupon/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: couponInput, subtotal }),
+    });
+
+    const data = await res.json();
+    setCouponLoading(false);
+
+    if (!res.ok) {
+      setCouponError(data.error ?? "Invalid coupon code.");
+      return;
+    }
+
+    setAppliedCoupon(data.code);
+    setCouponDiscount(data.discountAmount);
+    setCouponInput("");
+    // Recreate PaymentIntent with coupon applied
+    if (selectedAddressId) createIntent(data.code);
+  }
+
+  function removeCoupon() {
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
+    setCouponError("");
+    if (selectedAddressId) createIntent(null);
+  }
+
+  // Create PaymentIntent on address/delivery change
+
 
   useEffect(() => {
     if (selectedAddressId) createIntent();
@@ -314,6 +383,8 @@ export default function CheckoutPage() {
           <OrderSummary
             subtotal={subtotal}
             deliveryCost={deliveryCost}
+            couponDiscount={couponDiscount}         
+            appliedCoupon={appliedCoupon}
             collapsed={summaryCollapsed}
             onToggle={() => setSummaryCollapsed(p => !p)}
           />
@@ -437,10 +508,52 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {/* ── Coupon code ─────────────────────────────────────────────── */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <h2 className="font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                <span className="w-6 h-6 rounded-full bg-brand-orange text-white text-xs font-bold flex items-center justify-center">🏷️</span>
+                Discount code
+              </h2>
+
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between bg-green-50 border border-green-100 rounded-xl px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-semibold text-green-700">{appliedCoupon} applied</p>
+                      <p className="text-xs text-green-600">-£{couponDiscount.toFixed(2)} discount</p>
+                    </div>
+                  </div>
+                  <button onClick={removeCoupon} className="text-xs text-gray-400 hover:text-red-500 transition">Remove</button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(""); }}
+                    onKeyDown={e => e.key === "Enter" && applyCoupon()}
+                    placeholder="Enter code"
+                    className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange transition"
+                  />
+                  <button
+                    onClick={applyCoupon}
+                    disabled={couponLoading || !couponInput.trim()}
+                    className="bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 font-semibold px-4 py-2.5 rounded-xl text-sm transition"
+                  >
+                    {couponLoading ? "..." : "Apply"}
+                  </button>
+                </div>
+              )}
+              {couponError && <p className="text-red-500 text-xs mt-2">{couponError}</p>}
+            </div>
+
             {/* ── 3. Payment ───────────────────────────────────────────────── */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
               <h2 className="font-semibold text-gray-900 flex items-center gap-2 mb-5">
-                <span className="w-6 h-6 rounded-full bg-brand-orange text-white text-xs font-bold flex items-center justify-center">3</span>
+                <span className="w-6 h-6 rounded-full bg-brand-orange text-white text-xs font-bold flex items-center justify-center">4</span>
                 Payment
               </h2>
 
@@ -490,6 +603,8 @@ export default function CheckoutPage() {
               <OrderSummary
                 subtotal={subtotal}
                 deliveryCost={deliveryCost}
+                couponDiscount={couponDiscount}
+                appliedCoupon={appliedCoupon}
                 collapsed={false}
                 onToggle={() => {}}
               />
