@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 
 // ── TYPES ─────────────────────────────────────────────────────────────────────
 
@@ -41,8 +42,6 @@ export type ProductCardData = {
 
 type ProductCardProps = {
   product: ProductCardData;
-  wishlisted?: boolean;
-  onWishlist?: (id: string) => void;
 };
 
 // ── BADGE CONFIG ──────────────────────────────────────────────────────────────
@@ -158,13 +157,10 @@ function VariantGroup({
 
 // ── MAIN COMPONENT ────────────────────────────────────────────────────────────
 
-export default function ProductCard({
-  product,
-  wishlisted = false,
-  onWishlist,
-}: ProductCardProps) {
+export default function ProductCard({ product }: ProductCardProps) {
   const [imgError, setImgError] = useState(false);
   const [hovered, setHovered]   = useState(false);
+  const { isWishlisted, toggleWishlist } = useWishlist();
 
   const [variantsByType, setVariantsByType]     = useState<Record<string, ProductVariant[]>>({});
   const [selectedVariants, setSelectedVariants] = useState<Record<string, ProductVariant>>({});
@@ -297,22 +293,22 @@ export default function ProductCard({
 
         {/* TOP RIGHT — wishlist */}
         <button
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onWishlist?.(product.id); }}
-          aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleWishlist(product.id); }}
+          aria-label={isWishlisted(product.id) ? "Remove from wishlist" : "Add to wishlist"}
           style={{
             position: "absolute", top: "10px", right: "10px", zIndex: 3,
             width: "32px", height: "32px", borderRadius: "50%", border: "none", cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
-            background: wishlisted ? "#F43F5E" : "#fff",
+            background: isWishlisted(product.id) ? "#F43F5E" : "#fff",
             boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
             opacity: 1,
-            transform: wishlisted ? "scale(1.1)" : "scale(1)",
+            transform: isWishlisted(product.id) ? "scale(1.1)" : "scale(1)",
             transition: "all 0.2s ease",
           }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24"
-            fill={wishlisted ? "#fff" : "none"}
-            stroke={wishlisted ? "none" : "#F43F5E"}
+            fill={isWishlisted(product.id) ? "#fff" : "none"}
+            stroke={isWishlisted(product.id) ? "none" : "#F43F5E"}
             strokeWidth="2"
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>

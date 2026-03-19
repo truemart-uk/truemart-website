@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useWishlist } from "@/context/WishlistContext";
 import { createClient } from "@/lib/supabase/client";
 import { cloudinaryUrl } from "@/lib/cloudinary";
 //import ProductCard from "@/components/ProductCard";
@@ -138,7 +139,7 @@ function StockBadge({ stock, threshold, track }: { stock: number; threshold: num
 
 // ── REVIEW SECTION ────────────────────────────────────────────────────────────
 
-function ReviewSection({ productId, initialReviews }: { productId: string; initialReviews: Review[] }) {
+function ReviewSection({ productId, productSlug, initialReviews }: { productId: string; productSlug: string; initialReviews: Review[] }) {
   const { user } = useAuth();
   const supabase = createClient();
 
@@ -208,8 +209,8 @@ function ReviewSection({ productId, initialReviews }: { productId: string; initi
           </button>
         )}
         {!user && (
-          <Link href="/account/login" className="text-sm text-brand-orange font-semibold hover:underline">
-            Sign in to review
+          <Link href={`/account/login?redirect=/products/${productSlug}`} className="text-sm text-brand-orange font-semibold border border-brand-orange px-4 py-2 rounded-xl hover:bg-orange-50 transition">
+            Sign in to write review
           </Link>
         )}
       </div>
@@ -341,15 +342,16 @@ export default function ProductPageClient({
 }) {
   const { addItem, updateQuantity } = useCart();
   const { user } = useAuth();
+  const { isWishlisted, toggleWishlist } = useWishlist();
 
   const defaultVariant = product.variants.find(v => v.is_default) ?? product.variants[0] ?? null;
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(defaultVariant);
   const [quantity, setQuantity] = useState(1);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
-  const [wishlisted, setWishlisted] = useState(false);
-  const [wishlistLoading, setWishlistLoading] = useState(false);
-  const supabaseClient = createClient();
+
+  const wishlisted = isWishlisted(product.id);
+  const handleWishlist = useCallback(() => toggleWishlist(product.id), [product.id, toggleWishlist]);
 
   const variantTypes = [...new Set(product.variants.map(v => v.type))];
   const activePrice   = Number(selectedVariant?.price ?? product.price);
@@ -369,40 +371,23 @@ export default function ProductPageClient({
       price: activePrice, image: activeImages?.[0] ?? undefined,
       slug: product.slug, deliveryIncluded: product.delivery_included,
     });
-    if (quantity > 1) {
-    updateQuantity(product.id, selectedVariant?.id, quantity);
-    }
+    if (quantity > 1) updateQuantity(product.id, selectedVariant?.id, quantity);
     setAdding(false); setAdded(true);
     setTimeout(() => setAdded(false), 2500);
-  }, [product, selectedVariant, quantity, activePrice, activeImages, isOutOfStock, addItem]);
+  }, [product, selectedVariant, quantity, activePrice, activeImages, isOutOfStock, addItem, updateQuantity]);
 
   const handleBuyNow = useCallback(() => {
     if (isOutOfStock) return;
-    addItem({
+    const buyNowItem = {
       productId: product.id, variantId: selectedVariant?.id,
       name: product.name, variantLabel: selectedVariant?.value,
       price: activePrice, image: activeImages?.[0] ?? undefined,
       slug: product.slug, deliveryIncluded: product.delivery_included,
-    });
-    if (quantity > 1) {
-    updateQuantity(product.id, selectedVariant?.id, quantity);
-    }
-    window.location.href = "/checkout";
-  }, [product, selectedVariant, quantity, activePrice, activeImages, isOutOfStock, addItem]);
-
-  const handleWishlist = useCallback(async () => {
-    if (!user) { window.location.href = "/account/login"; return; }
-    setWishlistLoading(true);
-    if (wishlisted) {
-      await supabaseClient.from("wishlists").delete()
-        .eq("user_id", user.id).eq("product_id", product.id);
-      setWishlisted(false);
-    } else {
-      await supabaseClient.from("wishlists").insert({ user_id: user.id, product_id: product.id });
-      setWishlisted(true);
-    }
-    setWishlistLoading(false);
-  }, [user, wishlisted, product.id, supabaseClient]);
+      quantity,
+    };
+    sessionStorage.setItem("truemart_buynow", JSON.stringify(buyNowItem));
+    window.location.href = "/checkout?buynow=1";
+  }, [product, selectedVariant, quantity, activePrice, activeImages, isOutOfStock]);
 
   return (
     <>
@@ -500,54 +485,69 @@ export default function ProductPageClient({
             </div>
 
             {/* Three action buttons */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+ <div style={{ display: "flex", gap: "10px" }}>
 
-              {/* Row 1: Add to Cart + Buy Now */}
-              <div style={{ display: "flex", gap: "10px" }}>
+  {/* Add to Cart */}
+  <button onClick={handleAddToCart} disabled={isOutOfStock || adding}
+    style={{ flex: 2 }}
+    className={`py-3.5 rounded-2xl font-bold text-sm transition flex items-center justify-center gap-2 ${
+      added ? "bg-green-500 text-white"
+      : isOutOfStock ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+      : "bg-brand-orange hover:bg-orange-500 text-white shadow-lg shadow-orange-100 hover:-translate-y-0.5"
+    }`}>
+    {added ? (
+      <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>Added!</>
+    ) : isOutOfStock ? "Out of stock" : adding ? "Adding..." : (
+      <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>Add to cart</>
+    )}
+  </button>
 
-                {/* Add to Cart */}
-                <button onClick={handleAddToCart} disabled={isOutOfStock || adding}
-                  style={{ flex: 1 }}
-                  className={`py-3.5 rounded-2xl font-bold text-sm transition flex items-center justify-center gap-2 ${
-                    added ? "bg-green-500 text-white"
-                    : isOutOfStock ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-brand-orange hover:bg-orange-500 text-white shadow-lg shadow-orange-100 hover:-translate-y-0.5"
-                  }`}>
-                  {added ? (
-                    <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>Added!</>
-                  ) : isOutOfStock ? "Out of stock" : adding ? "Adding..." : (
-                    <><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>Add to cart</>
-                  )}
-                </button>
+  {/* Buy Now */}
+  <button onClick={handleBuyNow} disabled={isOutOfStock}
+    style={{ flex: 1, minWidth: "100px" }}
+    className={`py-3.5 rounded-2xl font-bold text-sm transition flex items-center justify-center gap-2 border-2 ${
+      isOutOfStock ? "border-gray-200 text-gray-400 cursor-not-allowed"
+      : "border-brand-orange text-brand-orange hover:bg-orange-50"
+    }`}
+    title="Buy now">
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
+    </svg>
+    Buy now
+  </button>
 
-                {/* Buy Now */}
-                <button onClick={handleBuyNow} disabled={isOutOfStock}
-                  style={{ flex: 1 }}
-                  className={`py-3.5 rounded-2xl font-bold text-sm transition flex items-center justify-center gap-2 border-2 ${
-                    isOutOfStock ? "border-gray-200 text-gray-400 cursor-not-allowed"
-                    : "border-brand-orange text-brand-orange hover:bg-orange-50"
-                  }`}>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                  </svg>
-                  Buy now
-                </button>
-              </div>
+  {/* Wishlist */}
+  <button onClick={handleWishlist}
+    style={{ flex: "none", width: "48px" }}
+    className={`py-3.5 rounded-2xl transition flex items-center justify-center border ${
+      wishlisted
+        ? "bg-red-50 border-red-200 text-red-500 hover:bg-red-100"
+        : "bg-white border-gray-200 text-gray-600 hover:border-brand-orange hover:text-brand-orange"
+    }`}
+    title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}>
+    <svg className="w-5 h-5" fill={wishlisted ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+    </svg>
+  </button>
 
-              {/* Row 2: Wishlist full width */}
-              <button onClick={handleWishlist} disabled={wishlistLoading}
-                className={`w-full py-3 rounded-2xl font-semibold text-sm transition flex items-center justify-center gap-2 border ${
-                  wishlisted
-                    ? "bg-red-50 border-red-200 text-red-500 hover:bg-red-100"
-                    : "bg-white border-gray-200 text-gray-600 hover:border-brand-orange hover:text-brand-orange"
-                }`}>
-                <svg className="w-4 h-4" fill={wishlisted ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                </svg>
-                {wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-              </button>
+  {/* Share */}
+  <button
+    onClick={() => {
+      if (navigator.share) {
+        navigator.share({ title: document.title, url: window.location.href });
+      } else {
+        navigator.clipboard.writeText(window.location.href);
+      }
+    }}
+    style={{ flex: "none", width: "48px" }}
+    className="py-3.5 rounded-2xl transition flex items-center justify-center border border-gray-200 bg-white text-gray-600 hover:border-brand-orange hover:text-brand-orange"
+    title="Share this product">
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+    </svg>
+  </button>
 
-            </div>
+</div>
 
             {/* Delivery */}
             <div className="bg-orange-50 rounded-2xl p-4 space-y-2.5">
@@ -590,14 +590,14 @@ export default function ProductPageClient({
         </div>
 
         {/* ── SECTION 3: Full width — Reviews + Related ────────────────────── */}
-        <div className="border-t border-gray-100 pt-12 space-y-14">
+        <div className="border-t border-gray-100 pt-2 space-y-14">
 
           {/* Reviews */}
-          <ReviewSection productId={product.id} initialReviews={initialReviews} />
+          <ReviewSection productId={product.id} productSlug={product.slug} initialReviews={initialReviews} />
 
           {/* Related products */}
           {relatedProducts.length > 0 && (
-            <div style={{ marginTop: "20px", paddingTop: "20px", borderTop: "1px solid #F3F4F6" }}>
+            <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: "1px solid #F3F4F6" }}>
               <div className="flex flex-col gap-4 mb-6">
                 <h2 className="text-xl font-bold text-gray-900">You might also like</h2>
                 <Link href={`/shop/${product.category_slug}`} className="text-sm text-brand-orange font-semibold hover:underline">

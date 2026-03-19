@@ -7,12 +7,14 @@ import { useState, useRef, useEffect } from "react";
 import { SITE } from "@/lib/site";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { useWishlist } from "@/context/WishlistContext";
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { totalItems, openCart } = useCart();
   const { user, loading, signOut, isRecoverySession, role } = useAuth();
+  const { totalWishlisted } = useWishlist();
 
   const [accountOpen, setAccountOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -194,11 +196,16 @@ export default function Navbar() {
               )}
 
               {/* Wishlist */}
-              <button aria-label="Wishlist" className="relative p-2 rounded-lg text-gray-600 hover:bg-orange-50 hover:text-brand-orange transition-colors">
+              <Link href="/account/wishlist" aria-label="Wishlist" className="relative p-2 rounded-lg text-gray-600 hover:bg-orange-50 hover:text-brand-orange transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
-              </button>
+                {totalWishlisted > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-xs font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                    {totalWishlisted}
+                  </span>
+                )}
+              </Link>
 
               {/* Cart */}
               <button onClick={openCart} aria-label="View cart" className="relative flex items-center gap-2 bg-brand-orange text-white pl-3 pr-4 py-2 rounded-full text-sm font-semibold hover:bg-orange-600 transition-colors ml-1">

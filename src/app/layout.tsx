@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { WishlistProvider } from "@/context/WishlistContext";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -34,10 +35,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${poppins.variable} font-sans antialiased bg-background`}>
         <AuthProvider>
           <CartProvider>
-            <Navbar />
-            <main>{children}</main>
-            <Footer />
-            <CartDrawer />
+            <WishlistProvider>
+              <Navbar />
+              <main>{children}</main>
+              <Footer />
+              <CartDrawer />
+            </WishlistProvider>
           </CartProvider>
         </AuthProvider>
       </body>

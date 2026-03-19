@@ -73,16 +73,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen]     = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const userIdRef               = useRef<string | null>(null);
-  const supabase                = createClient();
+  // const supabase                = createClient();
+  const supabaseRef             = useRef(createClient());
 
   // ── On mount: detect auth, load correct source ────────────────────────────
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabaseRef.current.auth.getUser();
 
       if (user) {
         userIdRef.current = user.id;
-        const dbItems = await loadCartFromDB(supabase, user.id);
+        const dbItems = await loadCartFromDB(supabaseRef.current, user.id);
         setItems(dbItems);
       } else {
         userIdRef.current = null;
@@ -94,10 +95,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     init();
 
     // Listen for login / logout
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabaseRef.current.auth.onAuthStateChange(async (event, session) => {
       //if (event === "SIGNED_IN" && session?.user) {
         //userIdRef.current = session.user.id;
-        //const dbItems = await loadCartFromDB(supabase, session.user.id);
+        //const dbItems = await loadCartFromDB(supabaseRef.current, session.user.id);
         //setItems(dbItems);
       //}
       if (event === "SIGNED_OUT") {
@@ -131,7 +132,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
     // Background DB write for logged-in users
     if (userId) {
-      upsertCartItemInDB(supabase, userId, { ...newItem, quantity: 1 })
+      upsertCartItemInDB(supabaseRef.current, userId, { ...newItem, quantity: 1 })
         .catch(console.error);
     }
 
@@ -146,7 +147,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems(prev => prev.filter(i => itemKey(i.productId, i.variantId) !== key));
 
     if (userId) {
-      removeCartItemFromDB(supabase, userId, productId, variantId)
+      removeCartItemFromDB(supabaseRef.current, userId, productId, variantId)
         .catch(console.error);
     }
   }, []);
@@ -167,7 +168,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     );
 
     if (userId) {
-      updateCartQuantityInDB(supabase, userId, productId, variantId, quantity)
+      updateCartQuantityInDB(supabaseRef.current, userId, productId, variantId, quantity)
         .catch(console.error);
     }
   }, []);
@@ -177,7 +178,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     const userId = userIdRef.current;
     setItems([]);
     if (userId) {
-      clearCartInDB(supabase, userId).catch(console.error);
+      clearCartInDB(supabaseRef.current, userId).catch(console.error);
     } else {
       clearLocalCart();
     }
@@ -186,13 +187,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // ── Merge guest cart on login ─────────────────────────────────────────────
   // Call this right after signInWithPassword succeeds in login page
   const mergeGuestCart = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabaseRef.current.auth.getUser();
     if (!user) return;
 
     const guestItems = readLocalCart();
     userIdRef.current = user.id;
 
-    const mergedItems = await mergeGuestCartIntoDB(supabase, user.id, guestItems);
+    const mergedItems = await mergeGuestCartIntoDB(supabaseRef.current, user.id, guestItems);
     setItems(mergedItems);
     clearLocalCart();
   }, []);
