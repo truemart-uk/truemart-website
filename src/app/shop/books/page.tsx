@@ -102,8 +102,6 @@ export default function BooksPage() {
               <ProductCard
                 key={product.id}
                 product={product}
-                wishlisted={wishlist.has(product.id)}
-                onWishlist={(id) => toggleWishlist(id)}
               />
             ))}
           </div>
