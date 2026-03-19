@@ -33,8 +33,8 @@ type CartContextType = {
   totalItems: number;
   subtotal: number;
   addItem: (item: Omit<CartItem, "quantity">) => void;
-  removeItem: (productId: string, variantId?: string) => void;
-  updateQuantity: (productId: string, variantId: string | undefined, quantity: number) => void;
+  removeItem: (productId: string, variantId?: string) => Promise<void>;
+  updateQuantity: (productId: string, variantId: string | undefined, quantity: number) => Promise<void>;
   clearCart: () => void;
   isOpen: boolean;
   openCart: () => void;
@@ -140,38 +140,36 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // ── Remove item (optimistic) ──────────────────────────────────────────────
-  const removeItem = useCallback((productId: string, variantId?: string) => {
-    const userId = userIdRef.current;
-    const key    = itemKey(productId, variantId);
+const removeItem = useCallback(async (productId: string, variantId?: string) => {
+  const key = itemKey(productId, variantId);
+  setItems(prev => prev.filter(i => itemKey(i.productId, i.variantId) !== key));
 
-    setItems(prev => prev.filter(i => itemKey(i.productId, i.variantId) !== key));
-
-    if (userId) {
-      removeCartItemFromDB(supabaseRef.current, userId, productId, variantId)
-        .catch(console.error);
-    }
-  }, []);
+  const userId = userIdRef.current ?? (await supabaseRef.current.auth.getUser()).data.user?.id;
+  if (userId) {
+    userIdRef.current = userId;
+    removeCartItemFromDB(supabaseRef.current, userId, productId, variantId).catch(console.error);
+  }
+}, []);
 
   // ── Update quantity (optimistic) ──────────────────────────────────────────
-  const updateQuantity = useCallback((
-    productId: string,
-    variantId: string | undefined,
-    quantity: number
-  ) => {
-    const userId = userIdRef.current;
-    const key    = itemKey(productId, variantId);
+const updateQuantity = useCallback(async (
+  productId: string,
+  variantId: string | undefined,
+  quantity: number
+) => {
+  const key = itemKey(productId, variantId);
+  setItems(prev =>
+    quantity <= 0
+      ? prev.filter(i => itemKey(i.productId, i.variantId) !== key)
+      : prev.map(i => itemKey(i.productId, i.variantId) === key ? { ...i, quantity } : i)
+  );
 
-    setItems(prev =>
-      quantity <= 0
-        ? prev.filter(i => itemKey(i.productId, i.variantId) !== key)
-        : prev.map(i => itemKey(i.productId, i.variantId) === key ? { ...i, quantity } : i)
-    );
-
-    if (userId) {
-      updateCartQuantityInDB(supabaseRef.current, userId, productId, variantId, quantity)
-        .catch(console.error);
-    }
-  }, []);
+  const userId = userIdRef.current ?? (await supabaseRef.current.auth.getUser()).data.user?.id;
+  if (userId) {
+    userIdRef.current = userId;
+    updateCartQuantityInDB(supabaseRef.current, userId, productId, variantId, quantity).catch(console.error);
+  }
+}, []);
 
   // ── Clear cart ────────────────────────────────────────────────────────────
   const clearCart = useCallback(() => {

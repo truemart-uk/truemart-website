@@ -27,8 +27,21 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       .from("wishlists")
       .select("product_id")
       .eq("user_id", user.id)
-      .then(({ data }) => {
-        setWishlistIds(new Set((data ?? []).map((w: { product_id: string }) => w.product_id)));
+      .then(async ({ data }) => {
+        const ids = new Set((data ?? []).map((w: { product_id: string }) => w.product_id));
+
+        // Check for pending wishlist item (set before redirect to login)
+        const pending = sessionStorage.getItem("truemart_wishlist_pending");
+        if (pending && !ids.has(pending)) {
+          sessionStorage.removeItem("truemart_wishlist_pending");
+          await supabaseRef.current.from("wishlists").insert({
+            user_id: user.id,
+            product_id: pending,
+          });
+          ids.add(pending);
+        }
+
+        setWishlistIds(ids);
         setLoading(false);
       });
   }, [user]);
@@ -38,7 +51,13 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
   }, [wishlistIds]);
 
   const toggleWishlist = useCallback(async (productId: string) => {
-    if (!user) { window.location.href = "/account/login"; return; }
+    if (!user) {
+      // Save pending product so we can auto-add after login
+      sessionStorage.setItem("truemart_wishlist_pending", productId);
+      // Redirect to login with current page as redirect target
+      window.location.href = `/account/login?redirect=${encodeURIComponent(window.location.pathname)}`;
+      return;
+    }
 
     const already = wishlistIds.has(productId);
 

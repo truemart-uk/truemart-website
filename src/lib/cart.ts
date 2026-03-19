@@ -54,7 +54,7 @@ export async function upsertCartItemInDB(
     .select("id, quantity")
     .eq("user_id", userId)
     .eq("product_id", item.productId)
-    .is("variant_id", item.variantId ?? null)
+    [item.variantId ? "eq" : "is"]("variant_id", item.variantId ?? null)
     .maybeSingle();
 
   if (existing) {
@@ -80,12 +80,20 @@ export async function updateCartQuantityInDB(
     await removeCartItemFromDB(supabase, userId, productId, variantId);
     return;
   }
-  await supabase
+
+  let query = supabase
     .from("cart_items")
     .update({ quantity })
     .eq("user_id", userId)
-    .eq("product_id", productId)
-    .is("variant_id", variantId ?? null);
+    .eq("product_id", productId);
+
+  if (variantId) {
+    query = query.eq("variant_id", variantId);
+  } else {
+    query = query.is("variant_id", null);
+  }
+
+  await query;
 }
 
 export async function removeCartItemFromDB(
@@ -94,12 +102,20 @@ export async function removeCartItemFromDB(
   productId: string,
   variantId: string | undefined
 ): Promise<void> {
-  await supabase
+  let query = supabase
     .from("cart_items")
     .delete()
     .eq("user_id", userId)
-    .eq("product_id", productId)
-    .is("variant_id", variantId ?? null);
+    .eq("product_id", productId);
+
+  if (variantId) {
+    query = query.eq("variant_id", variantId);
+  } else {
+    query = query.is("variant_id", null);
+  }
+
+  const { error } = await query;
+  if (error) console.error("removeCartItemFromDB error:", error);
 }
 
 export async function clearCartInDB(
@@ -125,7 +141,7 @@ export async function mergeGuestCartIntoDB(
       .select("id, quantity")
       .eq("user_id", userId)
       .eq("product_id", item.productId)
-      .is("variant_id", item.variantId ?? null)
+      [item.variantId ? "eq" : "is"]("variant_id", item.variantId ?? null)
       .maybeSingle();
 
     if (existing) {
