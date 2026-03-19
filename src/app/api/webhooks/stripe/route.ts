@@ -261,12 +261,12 @@ async function sendConfirmationEmail(
             <td style="font-size:13px;color:#6B7280;padding:4px 0;">Subtotal</td>
             <td style="font-size:13px;color:#6B7280;text-align:right;">£${Number(order.subtotal).toFixed(2)}</td>
           </tr>
-          <tr>
-            <td style="font-size:13px;color:#6B7280;padding:4px 0;">Delivery (${order.delivery_method === 'express' ? 'Express' : 'Standard'})</td>
-            <td style="font-size:13px;color:#6B7280;text-align:right;">${Number(order.delivery_cost) === 0 ? 'FREE' : '£' + Number(order.delivery_cost).toFixed(2)}</td>
           </tr>
           ${couponRow}
           <tr>
+          <tr>
+            <td style="font-size:13px;color:#6B7280;padding:4px 0;">Delivery (${order.delivery_method === 'express' ? 'Express' : 'Standard'})</td>
+            <td style="font-size:13px;color:#6B7280;text-align:right;">${Number(order.delivery_cost) === 0 ? 'FREE' : '£' + Number(order.delivery_cost).toFixed(2)}</td>
             <td style="font-size:15px;font-weight:700;color:#111;padding:10px 0 4px;border-top:2px solid #F3F4F6;">Total</td>
             <td style="font-size:15px;font-weight:700;color:#FB923C;text-align:right;padding:10px 0 4px;border-top:2px solid #F3F4F6;">£${Number(order.total).toFixed(2)}</td>
           </tr>
