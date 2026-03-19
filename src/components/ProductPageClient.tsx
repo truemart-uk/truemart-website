@@ -6,7 +6,8 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { createClient } from "@/lib/supabase/client";
 import { cloudinaryUrl } from "@/lib/cloudinary";
-import ProductCard from "@/components/ProductCard";
+//import ProductCard from "@/components/ProductCard";
+import ProductCard, { type ProductCardData } from "@/components/ProductCard";
 
 type Variant = {
   id: string;
@@ -605,7 +606,7 @@ export default function ProductPageClient({
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                 {relatedProducts.map((p) => (
-                  <ProductCard key={(p as {id:string}).id} product={p} />
+                <ProductCard key={(p as {id:string}).id} product={p as ProductCardData} />
                 ))}
               </div>
             </div>
