@@ -338,7 +338,7 @@ export default function ProductPageClient({
   relatedProducts: unknown[];
   initialReviews: Review[];
 }) {
-  const { addItem } = useCart();
+  const { addItem, updateQuantity } = useCart();
   const { user } = useAuth();
 
   const defaultVariant = product.variants.find(v => v.is_default) ?? product.variants[0] ?? null;
@@ -367,8 +367,10 @@ export default function ProductPageClient({
       name: product.name, variantLabel: selectedVariant?.value,
       price: activePrice, image: activeImages?.[0] ?? undefined,
       slug: product.slug, deliveryIncluded: product.delivery_included,
-      quantity
     });
+    if (quantity > 1) {
+    updateQuantity(product.id, selectedVariant?.id, quantity);
+    }
     setAdding(false); setAdded(true);
     setTimeout(() => setAdded(false), 2500);
   }, [product, selectedVariant, quantity, activePrice, activeImages, isOutOfStock, addItem]);
@@ -380,8 +382,10 @@ export default function ProductPageClient({
       name: product.name, variantLabel: selectedVariant?.value,
       price: activePrice, image: activeImages?.[0] ?? undefined,
       slug: product.slug, deliveryIncluded: product.delivery_included,
-      quantity
     });
+    if (quantity > 1) {
+    updateQuantity(product.id, selectedVariant?.id, quantity);
+    }
     window.location.href = "/checkout";
   }, [product, selectedVariant, quantity, activePrice, activeImages, isOutOfStock, addItem]);
 
