@@ -366,8 +366,8 @@ export default function ProductPageClient({
       productId: product.id, variantId: selectedVariant?.id,
       name: product.name, variantLabel: selectedVariant?.value,
       price: activePrice, image: activeImages?.[0] ?? undefined,
-      slug: product.slug, deliveryIncluded: product.delivery_included, quantity,
-    });
+      slug: product.slug, deliveryIncluded: product.delivery_included,
+    }, quantity);
     setAdding(false); setAdded(true);
     setTimeout(() => setAdded(false), 2500);
   }, [product, selectedVariant, quantity, activePrice, activeImages, isOutOfStock, addItem]);
@@ -378,8 +378,8 @@ export default function ProductPageClient({
       productId: product.id, variantId: selectedVariant?.id,
       name: product.name, variantLabel: selectedVariant?.value,
       price: activePrice, image: activeImages?.[0] ?? undefined,
-      slug: product.slug, deliveryIncluded: product.delivery_included, quantity,
-    });
+      slug: product.slug, deliveryIncluded: product.delivery_included,
+    }, quantity);
     window.location.href = "/checkout";
   }, [product, selectedVariant, quantity, activePrice, activeImages, isOutOfStock, addItem]);
 
