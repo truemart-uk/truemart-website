@@ -416,7 +416,7 @@ export default function AdminProductsTab() {
 
         {/* Section 1: Basic Info */}
         <Section title="Basic Information" icon="📋">
-          <Field label="Product Name" required error={errors.name}>
+          <Field label="Product Name" required>
             <input type="text" value={form.name} onChange={e => set("name", e.target.value)}
               placeholder="e.g. Bhagavad Gita As It Is" className={inputCls} />
             {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
