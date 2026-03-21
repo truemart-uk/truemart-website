@@ -250,8 +250,10 @@ function ReviewSection({ productId, productSlug, initialReviews }: { productId: 
               <label className="text-sm font-medium text-gray-700 block mb-1.5">Review <span className="text-red-500">*</span></label>
               <textarea value={content} onChange={e => setContent(e.target.value)}
                 required rows={4} placeholder="Share your experience with this product"
+                maxLength={1000}
                 className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange bg-white resize-none" />
             </div>
+            <p className="text-xs text-gray-400 text-right mt-1">{content.length}/1000</p>
             <button type="submit" disabled={submitting || !content.trim()}
               className="bg-brand-orange hover:bg-orange-500 disabled:opacity-60 text-white font-bold px-6 py-3 rounded-xl text-sm transition">
               {submitting ? "Submitting..." : "Submit review"}
@@ -318,7 +320,7 @@ function ReviewSection({ productId, productSlug, initialReviews }: { productId: 
                   <Stars rating={review.rating} size="sm" />
                 </div>
                 {review.title && <p className="text-sm font-semibold text-gray-900 mb-0.5">{review.title}</p>}
-                {review.content && <p className="text-sm text-gray-600 leading-relaxed">{review.content}</p>}
+                {review.content && <p className="text-sm text-gray-600 leading-relaxed" style={{wordBreak:"break-word", overflowWrap:"break-word"}}>{review.content}</p>}
               </div>
             ))}
           </div>

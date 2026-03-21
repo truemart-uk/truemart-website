@@ -229,15 +229,6 @@ async function sendConfirmationEmail(
   <tr><td align="center">
     <table width="100%" style="max-width:560px;" cellpadding="0" cellspacing="0">
 
-      <!-- Logo -->
-      <tr><td align="center" style="padding-bottom:24px;">
-        <table cellpadding="0" cellspacing="0"><tr>
-          <td style="background:#FB923C;border-radius:10px;padding:10px 20px;">
-            <span style="font-size:20px;font-weight:900;color:#000;">TRUEMART</span>
-          </td>
-        </tr></table>
-      </td></tr>
-
       <!-- Card -->
       <tr><td style="background:#fff;border-radius:16px;border:1px solid #f0f0ee;padding:40px;">
 
@@ -261,12 +252,12 @@ async function sendConfirmationEmail(
             <td style="font-size:13px;color:#6B7280;padding:4px 0;">Subtotal</td>
             <td style="font-size:13px;color:#6B7280;text-align:right;">£${Number(order.subtotal).toFixed(2)}</td>
           </tr>
-          </tr>
           ${couponRow}
-          <tr>
           <tr>
             <td style="font-size:13px;color:#6B7280;padding:4px 0;">Delivery (${order.delivery_method === 'express' ? 'Express' : 'Standard'})</td>
             <td style="font-size:13px;color:#6B7280;text-align:right;">${Number(order.delivery_cost) === 0 ? 'FREE' : '£' + Number(order.delivery_cost).toFixed(2)}</td>
+          </tr>
+          <tr>
             <td style="font-size:15px;font-weight:700;color:#111;padding:10px 0 4px;border-top:2px solid #F3F4F6;">Total</td>
             <td style="font-size:15px;font-weight:700;color:#FB923C;text-align:right;padding:10px 0 4px;border-top:2px solid #F3F4F6;">£${Number(order.total).toFixed(2)}</td>
           </tr>

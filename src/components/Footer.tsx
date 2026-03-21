@@ -80,7 +80,7 @@ export default function Footer() {
                   { label: "Return Policy", href: "/return-policy" },
                   { label: "Delivery Info", href: "/delivery" },
                   { label: "Contact Us", href: "/contact" },
-                  { label: "Sell With Us", href: "/sell" },
+                  { label: "Sell With Us", href: "/sell-with-us" },
                 ].map(item => (
                   <li key={item.label}>
                     <Link href={item.href} className="text-gray-500 text-sm hover:text-brand-orange transition-colors flex items-center gap-2 group">

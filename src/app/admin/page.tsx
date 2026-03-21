@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { cloudinaryUrl } from "@/lib/cloudinary";
+import AdminProductsTab from "@/components/AdminProductsTab";
 
 // ── TYPES ─────────────────────────────────────────────────────────────────────
 
@@ -218,7 +219,7 @@ function AnalyticsTab() {
 
 // ── MAIN PAGE ─────────────────────────────────────────────────────────────────
 
-type Tab = "dashboard" | "orders" | "analytics";
+type Tab = "dashboard" | "orders" | "analytics" | "products";
 
 function AdminContent() {
   const { user, loading: authLoading, role } = useAuth();
@@ -292,6 +293,7 @@ function AdminContent() {
     ...(isAdmin ? [{ id: "dashboard" as Tab, label: "Dashboard", icon: "📊" }] : []),
     { id: "orders" as Tab, label: "Orders", icon: "📦" },
     ...(isAdmin ? [{ id: "analytics" as Tab, label: "Analytics", icon: "📈" }] : []),
+    { id: "products" as Tab, label: "Products", icon: "🛍️" },
   ];
 
   return (
@@ -352,7 +354,9 @@ function AdminContent() {
         {activeTab === "analytics" && isAdmin && (
           <AnalyticsTab />
         )}
-
+        {activeTab === "products" && (
+          <AdminProductsTab />
+        )}
       </div>
     </div>
   );

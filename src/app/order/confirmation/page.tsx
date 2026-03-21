@@ -45,10 +45,10 @@ function OrderConfirmationContent() {
   const [error, setError]     = useState("");
   const supabase = createClient();
 
-  // Clear cart as soon as confirmation page loads
+  // Clear cart only after order is confirmed
   useEffect(() => {
-    clearCart();
-  }, []);
+    if (order) clearCart();
+  }, [order]);
 
   useEffect(() => {
     if (!pi) { setError("No order reference found."); setLoading(false); return; }

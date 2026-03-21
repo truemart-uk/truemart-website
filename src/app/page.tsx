@@ -92,6 +92,9 @@ export default async function Home() {
     .order("created_at", { ascending: false })
     .limit(4);
 
+  // Fetch latest 3 approved product reviews with reviewer name and product
+  const { data: latestReviews } = await supabase.rpc("get_homepage_reviews");
+
   function timeAgo(date: Date): string {
     const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
     if (seconds < 3600)  return `${Math.floor(seconds / 60)} minutes ago`;
@@ -331,21 +334,50 @@ export default async function Home() {
             <p className="text-gray-500">Real reviews from the TrueMart community</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((t) => (
-              <div key={t.name} className="bg-white rounded-2xl p-6 shadow-sm border border-orange-50">
+            {(latestReviews && latestReviews.length > 0 ? latestReviews : testimonials.map(t => ({
+              full_name: t.name,
+              rating: t.rating,
+              content: t.review,
+              product_name: t.product,
+              product_slug: null,
+              title: null,
+            }))).map((r: {
+              full_name: string;
+              rating: number;
+              content: string;
+              product_name: string;
+              product_slug: string | null;
+              title: string | null;
+            }, i: number) => (
+              <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-orange-50">
                 <div className="flex mb-3">
-                  {[...Array(t.rating)].map((_, i) => (
-                    <span key={i} className="text-brand-orange text-lg">★</span>
+                  {[...Array(r.rating)].map((_, j) => (
+                    <span key={j} style={{ color: j < r.rating ? "#FB923C" : "#D1D5DB", fontSize: "18px" }}>★</span>
                   ))}
                 </div>
-                <p className="text-gray-600 text-sm leading-relaxed mb-4">"{t.review}"</p>
+                {r.title && <p className="font-semibold text-gray-900 text-sm mb-1">{r.title}</p>}
+                <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-4" style={{wordBreak:"break-word"}}>"{r.content}"</p>
+
+                <div className="flex items-center gap-1 mb-3">
+  <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+  </svg>
+  <span className="text-xs text-green-600 font-medium">Verified Purchase</span>
+</div>
+
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 bg-orange-100 rounded-full flex items-center justify-center text-brand-orange font-bold text-sm">
-                    {t.name.charAt(0)}
+                    {r.full_name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-bold text-gray-900 text-sm">{t.name}</p>
-                    <p className="text-xs text-gray-400">Purchased: {t.product}</p>
+                    <p className="font-bold text-gray-900 text-sm">{r.full_name}</p>
+                    {r.product_slug ? (
+                      <Link href={`/products/${r.product_slug}`} className="text-xs text-brand-orange hover:underline">
+                        {r.product_name}
+                      </Link>
+                    ) : (
+                      <p className="text-xs text-gray-400">{r.product_name}</p>
+                    )}
                   </div>
                 </div>
               </div>
